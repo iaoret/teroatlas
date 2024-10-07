@@ -1,11 +1,12 @@
 import "ol/ol.css";
-import { RMap, ROSM } from "rlayers";
+import { RLayerVectorTile, RMap, ROSM } from "rlayers";
 //@ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'ROSM'.
 import { RView } from "rlayers/RMap";
 import { useState } from "react";
-
+import { MVT } from "ol/format";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts/highmaps";
+import { Fill, Stroke, Style } from "ol/style";
 
 export default function Dashboard() {
   const [view, setView] = useState<RView>({
@@ -23,8 +24,22 @@ export default function Dashboard() {
           height={"100%"}
           width={"100%"}
         >
-          {" "}
           <ROSM />
+          <RLayerVectorTile
+            url="http://localhost:6433/public.q1_tile_function/{z}/{x}/{y}.pbf?years_set={2019}"
+            format={new MVT()}
+            style={
+              new Style({
+                stroke: new Stroke({
+                  color: "#00447C",
+                  width: 1,
+                }),
+                fill: new Fill({
+                  color: "#00447c50",
+                }),
+              })
+            }
+          />
         </RMap>
       </div>
       <div className="w-1/2 h-[100vh] justify-center items-center text-center gap-6 p-4">
