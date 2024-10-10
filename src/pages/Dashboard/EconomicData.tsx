@@ -1,5 +1,5 @@
 import "ol/ol.css";
-import { RLayerTile, RLayerVectorTile, RMap } from "rlayers";
+import { RControl, RLayerTile, RLayerVectorTile, RMap } from "rlayers";
 //@ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'ROSM'.
 import { RView } from "rlayers/RMap";
 import { FormEvent, useState } from "react";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 
 export default function EconomicData() {
   const [view, setView] = useState<RView>({
@@ -19,6 +20,7 @@ export default function EconomicData() {
     resolution: 9695.196372827555,
   });
   const [search, setSearch] = useState("");
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const navigate = useNavigate();
 
@@ -43,7 +45,7 @@ export default function EconomicData() {
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
-      <div className="w-1/2 h-[100vh] justify-center">
+      <div className="w-full h-[100vh] justify-center z-10">
         <RMap
           initial={view}
           view={[view, setView]}
@@ -70,23 +72,51 @@ export default function EconomicData() {
               console.log(e.target.getProperties());
             }}
           />
+          <RControl.RCustom className="top-[15px] left-[15px] bg-slate-50 rounded-md text-slate-900 z-[1000]">
+            <Button
+              className="p-2 w-[30px] h-[36px] flex justify-center"
+              onClick={handleGoBack}
+            >
+              <ArrowBack className="h-4 w-4" />
+            </Button>
+          </RControl.RCustom>
+          <RControl.RCustom className="top-[15px] left-[25%] w-1/2 bg-slate-50 rounded-md text-slate-900 z-[1000]">
+            <div>
+              <Input
+                placeholder="Search by anything..."
+                value={search}
+                onInput={handleSearch}
+                className="border-slate-100"
+              ></Input>
+            </div>
+          </RControl.RCustom>
+          <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center">
+            <div onClick={() => setShowDashboard(!showDashboard)}>
+              <ChevronLeft
+                className={`${
+                  showDashboard ? "rotate-180" : ""
+                } transition-all duration-200 hover:cursor-pointer`}
+              />
+            </div>
+          </RControl.RCustom>
         </RMap>
-        <div className="absolute top-[15px] translate-x-[50%] w-1/4 bg-slate-50 rounded-md text-slate-900">
-          <Input
-            placeholder="Search by anything..."
-            value={search}
-            onInput={handleSearch}
-            className="border-slate-100"
-          ></Input>
-        </div>
-        <div className="absolute top-[15px] left-[15px] rounded-md text-slate-900">
-          <Button className="p-2" onClick={handleGoBack}>
-            <ArrowBack className="h-4 w-4 " />
-          </Button>
-        </div>
       </div>
-      <div className="w-1/2 h-[100vh] justify-center items-center text-center gap-6 p-4">
-        <h2 className="text-6xl font-bold">Stats</h2>
+      <div
+        className={`${
+          showDashboard ? "w-[50vw] min-w-[50vw]" : "w-[200px] min-w-[200px]"
+        } transition-all duration-200 h-[100vh] flex flex-col justify-center p-4 z-20  bg-primary-foreground`}
+      >
+        {!showDashboard && (
+          <div>
+            <h2 className="text-8xl font-bold  text-tero-100">24</h2>
+            <h2 className="text-1xl  font-semibold text-tero-100">
+              Dashboards Available
+            </h2>
+            <p className="">
+              Type anything on the searchbar to navigate between dashboards
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
