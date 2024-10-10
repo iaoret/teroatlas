@@ -10,9 +10,12 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size={"sm"} className="p-0 ">
+        <Button variant="outline" size={"sm"} className="p-0 rounded-sm">
           <div className="w-[2rem] h-[2rem] rounded-full bg-primary-content flex items-center justify-center">
-            <img src="https://thispersondoesnotexist.com" />
+            <img
+              className="rounded-sm"
+              src="https://thispersondoesnotexist.com"
+            />
             <span className="sr-only">Toggle user menu</span>
           </div>
         </Button>
