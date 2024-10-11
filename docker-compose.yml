@@ -49,3 +49,10 @@ services:
       db:
         condition: service_healthy
     <<: *restart-policy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:80"
