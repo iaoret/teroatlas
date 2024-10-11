@@ -54,8 +54,8 @@ export default function EconomicData() {
 
   const navigate = useNavigate();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isPending, error, data } = useQuery({
+   
+  const { error } = useQuery({
     queryKey: ["repoData"],
     queryFn: () =>
       fetch("https://api.github.com/repos/TanStack/query").then((res) =>
