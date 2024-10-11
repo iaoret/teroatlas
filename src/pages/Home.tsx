@@ -30,7 +30,7 @@ export default function Home() {
           Welcome, <b>Christopher</b>
         </h2>
         <p>Choose a dashboard below to start</p>
-        <div className="grid 2xl:grid-cols-3 lg:grid-cols-3 md:grid-cols-2 gap-4 mt-10">
+        <div className="grid 2xl:grid-cols-2 lg:grid-cols-2 md:grid-cols-2 gap-4 mt-10">
           <DashboardItem
             title={"Economic Data"}
             description={
