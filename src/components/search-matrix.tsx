@@ -7,7 +7,8 @@ export default function SearchMatrix(props: {
   search: string;
   buildDashboard: () => void;
 }) {
-  if (props.loading) return <Skeleton className="w-[800px] h-[500px]" />;
+  if (props.loading)
+    return <Skeleton className="min-w-[800px] w-full h-[500px]" />;
 
   if (
     props.search.includes("dc") &&
@@ -16,8 +17,8 @@ export default function SearchMatrix(props: {
   ) {
     return (
       <div className="flex flex-col items-center">
-        <div className={"w-[850px] h-[500px]"}>
-          <div id="1st-row" className="h-[calc(100%/5)] flex flex-row">
+        <div className={"w-full min-w-[850px] h-[500px]"}>
+          <div id="1st-row" className="w-full h-[calc(100%/5)] flex flex-row">
             <div className="w-[calc(100%/7)] h-full bg-transparent"></div>
             <div className="w-[calc(100%/7)] h-full flex items-center justify-center text-center rounded-tl-md border-gray-500 border-[1px]">
               {" "}

@@ -1,16 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import "ol/ol.css";
 import { RControl, RLayerTile, RLayerVectorTile, RMap } from "rlayers";
 //@ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'ROSM'.
 import { RView } from "rlayers/RMap";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { MVT } from "ol/format";
 import { Fill, Stroke, Style } from "ol/style";
-import { useQuery } from "@tanstack/react-query";
 import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,52 +18,65 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChartConfig, ChartContainer } from "@/components/ui/chart";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+import { Bar, BarChart, Legend, Tooltip, XAxis, YAxis } from "recharts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import SearchMatrix from "@/components/search-matrix";
+import { Skeleton } from "@/components/ui/skeleton";
+import { parseBox } from "@/lib/parseBox";
+import { Extent, getCenter } from "ol/extent";
+import { Separator } from "@/components/ui/separator";
+
+interface Q1Totals {
+  total_emp: number;
+  total_est: number;
+}
+
+interface Q1Top10BySubUnit {
+  zip: number;
+  name: string;
+  total: number;
+}
 
 export default function EconomicData() {
-  const [view, setView] = useState<RView>({
-    center: [-11087207.298375694, 4659260.145017052],
-    zoom: 4.013145380694064,
-    resolution: 9695.196372827555,
+  const mapRef = useRef<RMap>(null);
+  const [search, setSearch] = useState(
+    "dc congressional district economic data"
+  );
+
+  const [searchResults, setSearchResults] = useState({
+    length: {},
+    time: { years: [2019, 2020, 2021, 2022] },
+    intensity: {
+      variable: "emp",
+      order: "desc",
+    },
+    breadth: {},
   });
-  const [search, setSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [dashboardData, setDashboardData] = useState<
+    | {
+        boundingBox: number[];
+        q1Totals: Q1Totals[];
+        q1Top10BySubUnit: Q1Top10BySubUnit[];
+      }
+    | undefined
+  >();
 
   const navigate = useNavigate();
-
-   
-  const { error } = useQuery({
-    queryKey: ["repoData"],
-    queryFn: () =>
-      fetch("https://api.github.com/repos/TanStack/query").then((res) =>
-        res.json()
-      ),
-  });
-
-  if (error) console.error("Erro ao obter dados da API: ", error);
 
   function handleSearch(e: FormEvent<HTMLInputElement>) {
     setSearch(e.currentTarget.value);
@@ -90,14 +103,68 @@ export default function EconomicData() {
     navigate(-1);
   }
 
-  function buildDashboard() {
+  const buildDashboard = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q1Totals: Q1Totals[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${searchResults.time.years.join(
+              ","
+            )}}`
+        ).then((res) => res.json());
+
+        const q1Top10BySubUnit: Q1Top10BySubUnit[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_top_10_zip_codes?district_id=1&years_set={${searchResults.time.years.join(
+              ","
+            )}}&variable=${searchResults.intensity.variable}&order_direction=${
+              searchResults.intensity.order
+            }`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest + `/rpc/get_q1_extent`
+        ).then(async (res) => parseBox(await res.text()));
+
+        setDashboardData({
+          q1Totals: q1Totals,
+          q1Top10BySubUnit: q1Top10BySubUnit,
+          boundingBox: boundingBox,
+        });
+
+        return {
+          q1Totals: q1Totals,
+          q1Top10BySubUnit: q1Top10BySubUnit,
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
     setIsSearching(false);
     setShowDashboard(true);
-  }
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      console.log(mapRef.current.ol);
+      console.log(data.boundingBox);
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, [
+    searchResults.intensity.order,
+    searchResults.intensity.variable,
+    searchResults.time.years,
+  ]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      console.log(e);
       if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setIsSearching((isSearching) => !isSearching);
@@ -108,20 +175,30 @@ export default function EconomicData() {
         clearSearch();
       }
 
-      if (e.key === `Enter` && isSearching) {
+      if (
+        e.key === `Enter` &&
+        search.includes("dc") &&
+        search.includes("congressional district") &&
+        search.includes("economic data") &&
+        isSearching
+      ) {
         buildDashboard();
       }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [isSearching]);
+  }, [buildDashboard, isSearching, search]);
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
       <div className="w-full h-[100vh] justify-center z-10">
         <RMap
-          initial={view}
-          view={[view, setView]}
+          ref={mapRef}
+          initial={{
+            center: [-11087207.298375694, 4659260.145017052],
+            zoom: 4.013145380694064,
+            resolution: 9695.196372827555,
+          }}
           height={"100%"}
           width={"100%"}
           noDefaultControls
@@ -158,7 +235,8 @@ export default function EconomicData() {
               open={isSearching}
               onOpenChange={() => setIsSearching(!isSearching)}
             >
-              <DialogTrigger className="w-full h-full flex flex-row items-center justify-between rounded-md pl-2  max-w-full text-ellipsis overflow-hidden word">
+              <DialogTitle className="sr-only">Search by anything</DialogTitle>
+              <DialogTrigger className="w-full h-full flex flex-row items-center justify-between rounded-md pl-2  max-w-full max-h-full text-ellipsis overflow-hidden word">
                 <div className="flex flex-row w-full h-full items-center gap-2">
                   <Search className="h-4 w-4 " />
                   {search === "" ? (
@@ -166,7 +244,7 @@ export default function EconomicData() {
                       Search by anything (Ctrl + F or K)
                     </p>
                   ) : (
-                    <p className="font-light text-left italic text-slate-600">
+                    <p className="font-light text-left italic text-slate-600 leading-tight">
                       Searching by "{search}"{" "}
                     </p>
                   )}
@@ -212,7 +290,7 @@ export default function EconomicData() {
               />
             </div>
           </RControl.RCustom>
-          <RControl.RCustom
+          {/* <RControl.RCustom
             className={`${
               showDashboard ? "opacity-100" : "opacity-0"
             } bottom-[15px] left-[25%] w-1/2 z-[1000] shadow-sm shadow-gray transition-all duration-100`}
@@ -227,16 +305,16 @@ export default function EconomicData() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          </RControl.RCustom>
+          </RControl.RCustom> */}
         </RMap>
       </div>
       <div
         className={`${
           showDashboard ? "w-[50vw] min-w-[50vw]" : "w-[200px] min-w-[200px]"
-        } transition-all duration-200 max-h-[100vh] h-[100vh] overflow-y-auto flex flex-col justify-center p-4 z-20  bg-primary-foreground`}
+        } transition-all duration-200 flex flex-col justify-center z-20  bg-primary-foreground`}
       >
         {!showDashboard && (
-          <div>
+          <div className="p-4 flex flex-col ">
             <h2 className="text-8xl font-bold  text-tero-100">24</h2>
             <h2 className="text-1xl  font-semibold text-tero-100">
               Dashboards Available
@@ -246,76 +324,140 @@ export default function EconomicData() {
             </p>
           </div>
         )}
-        {showDashboard && (
+        {showDashboard && loading && (
           <div className="flex flex-col justify-center items-center gap-4">
-            <h2 className="font-semibold">
-              District of Columbia (Congressional DIstrict)
-            </h2>
-            <div className="text-center">
-              <h2 className="text-8xl font-bold text-tero-100">387.065</h2>
-              <h2 className="text-2xl font-bold text-tero-100">Employees</h2>
-            </div>
-            <div className="text-center">
-              <h2 className="text-8xl font-bold">123.456</h2>
-              <h2 className="text-2xl font-bold ">Establishments</h2>
-            </div>
-            <h2 className="text-sm italic m-2">
-              Calculated using data from 54 ZIP Codes within target geography
-            </h2>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="border-2 border-slate-600 hover:border-slate-400 transition-all duration-200">
-                Customize Data Display
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>Data Table Preview</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Top 10 Observations by Unit</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  Top 10 Observations by Sub-Unit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Value Over Time</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <h2>Value Over Time</h2>
-            <ChartContainer config={chartConfig} className="h-full w-full">
-              <LineChart
-                width={800}
-                height={300}
-                data={chartData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="pv"
-                  stroke="#8884d8"
-                  activeDot={{ r: 8 }}
-                />
-                <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
-              </LineChart>
-            </ChartContainer>
+            <Skeleton className="w-2/3 h-[50px]" />
+            <Separator />
+            <Skeleton className="w-full h-[100px]" />
+            <Skeleton className="w-1/2 h-[30px]" />
+            <Skeleton className="w-full h-[100px]" />
+            <Skeleton className="w-1/2 h-[30px]" />
+            <Skeleton className="w-full h-[30px]" />
+            <Separator />
+            <Skeleton className="w-1/3 h-[60px]" />
+            <Skeleton className="w-full h-[400px]" />
+            <Separator />
+            <Skeleton className="h-[50px] w-1/2" />
+          </div>
+        )}
+        {showDashboard && !loading && (
+          <div className="w-full flex flex-col justify-between items-center pt-4 pb-4 max-h-[100vh] h-[100vh] overflow-y-auto">
+            {showDashboard && dashboardData?.q1Totals && (
+              <div className="flex flex-col justify-center items-center">
+                <h2 className="text-2xl font-semibold text-center mt-4 mb-4">
+                  District of Columbia (Congressional District)
+                </h2>
 
+                <Separator className="mt-4 mb-4" />
+                <div className="text-center">
+                  <h2 className="text-8xl font-bold text-tero-100">
+                    {dashboardData.q1Totals[0].total_emp.toLocaleString(
+                      "en-US"
+                    )}
+                  </h2>
+                  <h2 className="text-xl font-semibold text-tero-100 mt-1">
+                    Employees
+                  </h2>
+                </div>
+                <div className="text-center">
+                  <h2 className="text-8xl font-bold">
+                    {dashboardData.q1Totals[0].total_est.toLocaleString(
+                      "en-US"
+                    )}
+                  </h2>
+                  <h2 className="text-xl font-semibold mt-1">Establishments</h2>
+                </div>
+                <h2 className="text-xs italic text-slate-600 text-center mt-4">
+                  Calculated using data from 54 ZIP Codes within target
+                  geography
+                </h2>
+              </div>
+            )}
+
+            <Separator className="mt-4 mb-4" />
+
+            <div className={"w-full flex flex-col items-center justify-center"}>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="hover:border-slate-400 transition-all duration-200 text-sm flex flex-row items-center justify-center">
+                  Customize Data Display &nbsp;{" "}
+                  <ChevronDown className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem className="hover:cursor-pointer">
+                    Data Table Preview
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="hover:cursor-pointer">
+                    Top 10 Observations by Unit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="hover:cursor-pointer">
+                    Top 10 Observations by Sub-Unit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="hover:cursor-pointer">
+                    Value Over Time
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <h2 className="text-2xl font-bold">
+                Top 10 Observations by Sub-Unit
+              </h2>
+
+              <p className="text-xs italic text-slate-600">
+                Ordered by the{" "}
+                {searchResults.intensity.order === "desc" && "highest"}{" "}
+                {searchResults.intensity.order === "asc" && "lowest"} value of{" "}
+                {searchResults.intensity.variable === "est" && "establishments"}
+                {searchResults.intensity.variable === "emp" && "employees"}
+              </p>
+              {dashboardData?.q1Top10BySubUnit && (
+                <ChartContainer
+                  config={{
+                    desktop: {
+                      label: "Desktop",
+                      color: "#2563eb",
+                    },
+                    mobile: {
+                      label: "Mobile",
+                      color: "#60a5fa",
+                    },
+                  }}
+                  className="h-full w-full mt-4 mb-4"
+                >
+                  <BarChart
+                    width={400}
+                    height={500}
+                    data={dashboardData.q1Top10BySubUnit}
+                  >
+                    <Bar dataKey={"total"} fill={"#4285F4"} />
+                    <XAxis dataKey="zip" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                  </BarChart>
+                </ChartContainer>
+              )}
+            </div>
+
+            <Separator className="mt-4 mb-4" />
             <DropdownMenu>
               <DropdownMenuTrigger className="border-2 border-slate-600 hover:border-slate-400 transition-all duration-200">
                 Export Data
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem>to .CSV</DropdownMenuItem>
+                <DropdownMenuItem className="hover:cursor-pointer">
+                  to .CSV
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>to .XLSX</DropdownMenuItem>
+                <DropdownMenuItem className="hover:cursor-pointer">
+                  to .XLSX
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>to .PDF</DropdownMenuItem>
+                <DropdownMenuItem className="hover:cursor-pointer">
+                  to .PDF
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -324,60 +466,3 @@ export default function EconomicData() {
     </div>
   );
 }
-
-
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "#2563eb",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "#60a5fa",
-  },
-} satisfies ChartConfig;
-
-const chartData = [
-  {
-    name: "Page A",
-    uv: 4000,
-    pv: 2400,
-    amt: 2400,
-  },
-  {
-    name: "Page B",
-    uv: 3000,
-    pv: 1398,
-    amt: 2210,
-  },
-  {
-    name: "Page C",
-    uv: 2000,
-    pv: 9800,
-    amt: 2290,
-  },
-  {
-    name: "Page D",
-    uv: 2780,
-    pv: 3908,
-    amt: 2000,
-  },
-  {
-    name: "Page E",
-    uv: 1890,
-    pv: 4800,
-    amt: 2181,
-  },
-  {
-    name: "Page F",
-    uv: 2390,
-    pv: 3800,
-    amt: 2500,
-  },
-  {
-    name: "Page G",
-    uv: 3490,
-    pv: 4300,
-    amt: 2100,
-  },
-];
