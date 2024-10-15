@@ -37,12 +37,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    <<: *restart-policy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`tero-atlas-tiles.marotta.dev`)"
-      - "traefik.http.routers.portainer.entrypoints=web"
-      - "traefik.http.services.portainer.loadbalancer.server.port=7800"
+      - "traefik.http.routers.tiles.rule=Host(`tero-atlas-tiles.marotta.dev`)"
+      - "traefik.http.routers.tiles.entrypoints=web"
+      - "traefik.http.services.tiles.loadbalancer.server.port=7800"
+    <<: *restart-policy
 
   rest:
     image: postgrest/postgrest
@@ -55,12 +55,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    <<: *restart-policy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`tero-atlas-rest.marotta.dev`)"
-      - "traefik.http.routers.portainer.entrypoints=web"
-      - "traefik.http.services.portainer.loadbalancer.server.port=3000"
+      - "traefik.http.routers.rest.rule=Host(`tero-atlas-rest.marotta.dev`)"
+      - "traefik.http.routers.rest.entrypoints=web"
+      - "traefik.http.services.rest.loadbalancer.server.port=3000"
+    <<: *restart-policy
 
   traefik:
     image: traefik:v3.0
