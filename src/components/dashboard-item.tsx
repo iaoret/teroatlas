@@ -8,6 +8,7 @@ import {
 } from "./ui/card";
 
 export default function DashboardItem(props: {
+  image: ReactNode;
   title: ReactNode;
   description: ReactNode;
   footer: ReactNode;
@@ -19,7 +20,9 @@ export default function DashboardItem(props: {
       onClick={props.onClick}
     >
       <div className="flex flex-row items-center">
-        <div className="min-h-40 min-w-40 mt-1 ml-4 rounded-l-md bg-black"></div>
+        <div className="min-h-40 min-w-40 mt-1 ml-4 rounded-l-md bg-black flex flex-col justify-center items-center">
+          {props.image}
+        </div>
         <div>
           <CardHeader>
             <CardTitle>{props.title}</CardTitle>

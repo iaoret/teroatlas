@@ -279,14 +279,14 @@ export default function EconomicData() {
               <ArrowBack className="h-4 w-4" />
             </Button>
           </RControl.RCustom>
-          <RControl.RCustom className="top-[15px] left-[50%] translate-x-[-50%] w-1/2 max-w-[80%] h-[36px]rounded-md text-slate-900 z-[1000] shadow-sm shadow-gray bg-transparent">
+          <RControl.RCustom className="top-[15px] left-[50%] translate-x-[-50%] w-1/2 max-w-[80%] h-[36px] bg-slate-50 rounded-md text-slate-900 z-[1000] shadow-sm shadow-gray ">
             <Dialog
               open={isSearching}
               onOpenChange={() => setIsSearching(!isSearching)}
             >
               <DialogTitle className="sr-only">Search by anything</DialogTitle>
               <DialogTrigger className="w-full h-full flex flex-row items-center justify-between rounded-md pl-2  max-w-full max-h-full text-ellipsis overflow-hidden word">
-                <div className="flex flex-row w-full h-full items-center gap-2  bg-slate-50 ">
+                <div className="flex flex-row w-full h-full items-center gap-2">
                   <Search className="h-4 w-4 " />
                   {search === "" ? (
                     <p className="font-light text-left italic text-slate-600">
