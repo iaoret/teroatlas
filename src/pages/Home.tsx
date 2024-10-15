@@ -5,7 +5,6 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
 import { useNavigate } from "react-router-dom";
-import economicDataThumbnail from "./../assets/economic-data-thumbnail.jpg";
 
 export default function Home() {
   const navigate = useNavigate();
