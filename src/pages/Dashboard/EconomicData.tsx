@@ -333,13 +333,13 @@ export default function EconomicData() {
             </Dialog>
           </RControl.RCustom>
           <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center">
-            <div onClick={() => setShowDashboard(!showDashboard)}>
+            {/* <div onClick={() => setShowDashboard(!showDashboard)}>
               <ChevronLeft
                 className={`${
                   showDashboard ? "rotate-180" : ""
                 } transition-all duration-200 hover:cursor-pointer`}
               />
-            </div>
+            </div> */}
           </RControl.RCustom>
           {/* <RControl.RCustom
             className={`${
