@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, Legend, Tooltip, XAxis, YAxis } from "recharts";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -34,34 +33,23 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import SearchMatrix from "@/components/search-matrix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseBox } from "@/lib/parseBox";
-import { Extent, getCenter } from "ol/extent";
 import { Separator } from "@/components/ui/separator";
-
-interface Q1Totals {
-  total_emp: number;
-  total_est: number;
-}
-
-interface Q1Top10BySubUnit {
-  zip: number;
-  name: string;
-  total: number;
-}
+import getChoroplethColor from "@/lib/getChoroplethColor";
+import { FeatureLike } from "ol/Feature";
+import { Q1Top10BySubUnit, Q1Totals, SearchResults } from "@/interfaces";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState(
-    "dc congressional district economic data"
-  );
+  const [search, setSearch] = useState("");
 
-  const [searchResults, setSearchResults] = useState({
-    length: {},
+  const [searchResults, setSearchResults] = useState<SearchResults>({
+    length: null,
     time: { years: [2019, 2020, 2021, 2022] },
     intensity: {
       variable: "emp",
       order: "desc",
     },
-    breadth: {},
+    breadth: null,
   });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -70,6 +58,12 @@ export default function EconomicData() {
   const [dashboardData, setDashboardData] = useState<
     | {
         boundingBox: number[];
+        choroplethicData: {
+          maxEmp: number;
+          maxEst: number;
+          minEmp: number;
+          minEst: number;
+        };
         q1Totals: Q1Totals[];
         q1Top10BySubUnit: Q1Top10BySubUnit[];
       }
@@ -97,6 +91,7 @@ export default function EconomicData() {
     setSearch("");
     setShowDashboard(false);
     setIsSearching(false);
+    setDashboardData(undefined);
   }
 
   function handleGoBack() {
@@ -126,10 +121,20 @@ export default function EconomicData() {
           environment.urlRest + `/rpc/get_q1_extent`
         ).then(async (res) => parseBox(await res.text()));
 
+        const choropleticData = await fetch(
+          environment.urlRest + `/rpc/get_min_max_emp_est`
+        ).then(async (res) => res.json());
+
         setDashboardData({
           q1Totals: q1Totals,
           q1Top10BySubUnit: q1Top10BySubUnit,
           boundingBox: boundingBox,
+          choroplethicData: {
+            minEmp: choropleticData[0].min_emp,
+            maxEmp: choropleticData[0].max_emp,
+            minEst: choropleticData[0].min_est,
+            maxEst: choropleticData[0].max_est,
+          },
         });
 
         return {
@@ -147,8 +152,6 @@ export default function EconomicData() {
     setShowDashboard(true);
     const data = await fetchData();
     if (mapRef.current && data?.boundingBox) {
-      console.log(mapRef.current.ol);
-      console.log(data.boundingBox);
       mapRef.current.ol.getView().fit(data?.boundingBox, {
         size: mapRef.current.ol.getSize(),
         duration: 1000,
@@ -205,22 +208,68 @@ export default function EconomicData() {
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           <RLayerVectorTile
-            url={`${environment.urlTiles}/public.q1_tile_function/{z}/{x}/{y}.pbf?years_set={2019,2020,2021}`}
+            url={`${
+              environment.urlTiles
+            }/public.q1_tile_function/{z}/{x}/{y}.pbf?years_set={${searchResults.time.years.join(
+              ","
+            )}}`}
             format={new MVT()}
-            style={
-              new Style({
-                stroke: new Stroke({
-                  color: "#00447C",
-                  width: 1,
-                }),
-                fill: new Fill({
-                  color: "#00447c50",
-                }),
-              })
-            }
+            style={useCallback(
+              (feature: FeatureLike) => {
+                if (!dashboardData) return;
+                const value = feature.get(searchResults.intensity.variable);
+
+                return new Style({
+                  stroke: new Stroke({
+                    color: "#00447C",
+                    width: 1,
+                  }),
+                  fill: new Fill({
+                    color: getChoroplethColor(
+                      value,
+                      dashboardData?.choroplethicData[
+                        searchResults.intensity.variable === "emp"
+                          ? "maxEmp"
+                          : "maxEst"
+                      ],
+                      dashboardData?.choroplethicData[
+                        searchResults.intensity.variable === "emp"
+                          ? "minEmp"
+                          : "minEst"
+                      ],
+                      [255, 255, 255],
+                      [12, 63, 150],
+                      0.3
+                    ),
+                  }),
+                });
+              },
+              [dashboardData, searchResults]
+            )}
+            // onPointerMove={(e) => {
+            //   console.log(e.target.getProperties());
+            // }}
             onClick={(e) => {
               console.log(e.target.getProperties());
             }}
+          />
+          <RLayerVectorTile
+            // TODO: this logic here can be used for the MVP, need to make the selectedGeometry more dynamic
+            style={useCallback(
+              () =>
+                new Style({
+                  stroke: new Stroke({
+                    color: dashboardData ? "#ff0000" : "#00000000",
+                    width: 5,
+                  }),
+                  fill: new Fill({
+                    color: "#00000000",
+                  }),
+                }),
+              [dashboardData]
+            )}
+            url={`${environment.urlTiles}/public.q1_dc_congressional_district/{z}/{x}/{y}.pbf`}
+            format={new MVT()}
           />
           <RControl.RCustom className="top-[15px] left-[15px] bg-slate-50 rounded-md text-slate-900 z-[1000]">
             <Button
@@ -230,14 +279,14 @@ export default function EconomicData() {
               <ArrowBack className="h-4 w-4" />
             </Button>
           </RControl.RCustom>
-          <RControl.RCustom className="top-[15px] left-[50%] translate-x-[-50%] w-1/2 max-w-[80%] h-[36px] bg-slate-50 rounded-md text-slate-900 z-[1000] shadow-sm shadow-gray ">
+          <RControl.RCustom className="top-[15px] left-[50%] translate-x-[-50%] w-1/2 max-w-[80%] h-[36px]rounded-md text-slate-900 z-[1000] shadow-sm shadow-gray bg-transparent">
             <Dialog
               open={isSearching}
               onOpenChange={() => setIsSearching(!isSearching)}
             >
               <DialogTitle className="sr-only">Search by anything</DialogTitle>
               <DialogTrigger className="w-full h-full flex flex-row items-center justify-between rounded-md pl-2  max-w-full max-h-full text-ellipsis overflow-hidden word">
-                <div className="flex flex-row w-full h-full items-center gap-2">
+                <div className="flex flex-row w-full h-full items-center gap-2  bg-slate-50 ">
                   <Search className="h-4 w-4 " />
                   {search === "" ? (
                     <p className="font-light text-left italic text-slate-600">
@@ -276,6 +325,8 @@ export default function EconomicData() {
                     loading={loading}
                     search={search}
                     buildDashboard={buildDashboard}
+                    setSearchResults={setSearchResults}
+                    searchResults={searchResults}
                   />
                 </div>
               </DialogContent>
@@ -325,7 +376,7 @@ export default function EconomicData() {
           </div>
         )}
         {showDashboard && loading && (
-          <div className="flex flex-col justify-center items-center gap-4">
+          <div className="flex flex-col justify-center items-center gap-4 max-h-screen overflow-y-auto">
             <Skeleton className="w-2/3 h-[50px]" />
             <Separator />
             <Skeleton className="w-full h-[100px]" />
@@ -369,7 +420,9 @@ export default function EconomicData() {
                 </div>
                 <h2 className="text-xs italic text-slate-600 text-center mt-4">
                   Calculated using data from 54 ZIP Codes within target
-                  geography
+                  geography in the{" "}
+                  {searchResults.time.years.length === 1 ? "year of" : "years"}{" "}
+                  {searchResults.time.years.join(", ")}
                 </h2>
               </div>
             )}

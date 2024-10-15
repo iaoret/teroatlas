@@ -1,12 +1,72 @@
 import { Blocks } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Button } from "./ui/button";
+import { Dispatch, SetStateAction } from "react";
+import { SearchResults } from "@/interfaces";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SearchMatrix(props: {
   loading: boolean;
   search: string;
   buildDashboard: () => void;
+  searchResults: SearchResults;
+  setSearchResults: Dispatch<SetStateAction<SearchResults>>;
 }) {
+  const { toast } = useToast();
+
+  function handleClickOnYear(year: number) {
+    console.log(
+      `years selected: ${props.searchResults.time.years}, just clicked on ${year}`
+    );
+    const currentYears = props.searchResults.time.years;
+
+    if (currentYears.includes(year)) {
+      const newYears = currentYears.filter((y) => y !== year);
+      if (newYears.length === 0) {
+        toast({
+          title: "No years selected",
+          description: "You must select at least one year",
+        });
+        console.log("oops, cant do that");
+        return;
+      }
+      props.setSearchResults({
+        ...props.searchResults,
+        time: {
+          ...props.searchResults.time,
+          years: newYears,
+        },
+      });
+    } else {
+      props.setSearchResults({
+        ...props.searchResults,
+        time: {
+          ...props.searchResults.time,
+          years: [...currentYears, year],
+        },
+      });
+    }
+  }
+
+  function handleClickOnIntensity(variable: string, order: string) {
+    const currentVariable = props.searchResults.intensity.variable;
+    const currentOrder = props.searchResults.intensity.order;
+
+    if (currentVariable === variable && currentOrder === order) {
+      console.log("same");
+      return;
+    } else {
+      props.setSearchResults({
+        ...props.searchResults,
+        intensity: {
+          ...props.searchResults.intensity,
+          variable: variable,
+          order: order,
+        },
+      });
+    }
+  }
+
   if (props.loading)
     return <Skeleton className="min-w-[800px] w-full h-[500px]" />;
 
@@ -65,20 +125,23 @@ export default function SearchMatrix(props: {
               Period
             </div>
             <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
-            <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer">
-              <ul>
-                <li>
-                  <span className="font-semibold">2019</span>
-                </li>
-                <li>
-                  <span className="font-semibold">2020</span>
-                </li>
-                <li>
-                  <span className="font-semibold">2021</span>
-                </li>
-                <li>
-                  <span className="font-semibold">2022</span>
-                </li>
+            <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] ">
+              <ul className="columns-2">
+                {[2019, 2020, 2021, 2022].map((year) => {
+                  return (
+                    <li key={year}>
+                      <span
+                        className={`font-semibold hover:font-bold hover:cursor-pointer ${
+                          props.searchResults.time.years.includes(year) &&
+                          "text-tero-100"
+                        }`}
+                        onClick={() => handleClickOnYear(year)}
+                      >
+                        {year}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
@@ -105,20 +168,47 @@ export default function SearchMatrix(props: {
             </div>
             <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
             <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
-            <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer">
+            <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs">
               <ul>
-                <li>
-                  <span className="font-semibold">Highest Value (Est.)</span>
-                </li>
-                <li>
-                  <span className="font-semibold">Highest Value (Emp.)</span>
-                </li>
-                <li>
-                  <span className="font-semibold">Lowest Value (Est.)</span>
-                </li>
-                <li>
-                  <span className="font-semibold">Lowest Value (Emp.)</span>
-                </li>
+                {[
+                  {
+                    title: "Highest Value (Est.)",
+                    variable: "est",
+                    order: "desc",
+                  },
+                  {
+                    title: "Highest Value (Emp.)",
+                    variable: "emp",
+                    order: "desc",
+                  },
+                  {
+                    title: "Lowest Value (Est.)",
+                    variable: "est",
+                    order: "asc",
+                  },
+                  {
+                    title: "Lowest Value (Emp.)",
+                    variable: "emp",
+                    order: "asc",
+                  },
+                ].map((item) => {
+                  return (
+                    <li
+                      key={item.title}
+                      className={`font-semibold hover:font-bold hover:cursor-pointer ${
+                        props.searchResults.intensity.variable ===
+                          item.variable &&
+                        props.searchResults.intensity.order === item.order &&
+                        "text-tero-100"
+                      }`}
+                      onClick={() =>
+                        handleClickOnIntensity(item.variable, item.order)
+                      }
+                    >
+                      <span className="font-semibold">{item.title}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center  border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
