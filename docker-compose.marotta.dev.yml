@@ -31,7 +31,7 @@ services:
   tiles:
     image: pramsey/pg_tileserv
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db/postgres
+      DATABASE_URL: postgresql://postgres:postgres@db/teroatlas
     networks:
       - tero-atlas
     depends_on:
@@ -47,7 +47,7 @@ services:
   rest:
     image: postgrest/postgrest
     environment:
-      PGRST_DB_URI: postgresql://postgres:postgres@db/postgres
+      PGRST_DB_URI: postgresql://postgres:postgres@db/teroatlas
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: postgres
     networks:
