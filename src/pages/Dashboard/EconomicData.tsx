@@ -10,7 +10,7 @@ import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
