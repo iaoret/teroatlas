@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "./pages/Home";
 import EconomicData from "./pages/Dashboard/EconomicData";
 import { Toaster } from "sonner";
+import RetailHome from "./pages/Dashboard/RetailHome";
 
 const router = createBrowserRouter([
   {
@@ -14,8 +15,8 @@ const router = createBrowserRouter([
     element: <EconomicData />,
   },
   {
-    path: "/dashboard/retail",
-    element: <EconomicData />,
+    path: "/dashboard/retail-home",
+    element: <RetailHome />,
   },
 ]);
 

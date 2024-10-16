@@ -61,7 +61,7 @@ export default function Home() {
                 </p>
               </div>
             }
-            onClick={() => handleClick("/dashboard/retail")}
+            onClick={() => handleClick("/dashboard/retail-home")}
           />
         </div>
         <Button variant={"outline"} className="bg-tero-100 mt-10">
