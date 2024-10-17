@@ -305,7 +305,7 @@ export default function EconomicData() {
                     {!search && "Search by anything (Ctrl + F or K)"}
                     {search && (
                       <p className="font-light text-left italic text-slate-600 leading-tight w-full text-nowrap truncate">
-                        Searching by "{search}"{" "}
+                        Searching by "{search}"
                       </p>
                     )}
                     {search && (

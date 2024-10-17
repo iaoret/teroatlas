@@ -15,7 +15,7 @@ import { Input } from "./ui/input";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 
-export default function SearchByLocal() {
+export default function ShopByLocal(props: { searchKey: string }) {
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [searchLocal, setSearchLocal] = useState<{
     isOpen: boolean;
@@ -32,13 +32,19 @@ export default function SearchByLocal() {
     search: "",
     searchResults: undefined,
   });
+  const [isOpen, setIsOpen] = useState(false);
 
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const inputSearchByLocalRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  function handleMakeSearchByLocal(local: string) {
-    navigate(`/dashboard/retail-map?key=${local}`);
+  function handleMakeSearchByLocal(mapKey: string, featureId?: string) {
+    setIsOpen(false);
+    navigate(
+      `/dashboard/retail-map?mapKey=${mapKey}${
+        featureId ? `&featureId=` + featureId : ""
+      }&searchKey=${props.searchKey}`
+    );
   }
 
   const handleSearchByLocal = useCallback(
@@ -80,7 +86,7 @@ export default function SearchByLocal() {
             return {
               place: e.namelsad20,
               type: "Congressional District",
-              key: `q1_dc_congressional_district&id=${e.id}`,
+              key: `q1_dc_congressional_district&featureId=${e.id}`,
             };
           }),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,7 +94,7 @@ export default function SearchByLocal() {
             return {
               place: e["NAME"],
               type: "Ward of DC",
-              key: `q3_dc_wards&id=${e.id}`,
+              key: `q3_dc_wards&featureId=${e.id}`,
             };
           }),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +102,7 @@ export default function SearchByLocal() {
             return {
               place: e["ZIP_CODE_TEXT"],
               type: "ZIP Codes",
-              key: `q1_dc_zip_codes&id=${e.id}`,
+              key: `q1_dc_zip_codes&featureId=${e.id}`,
             };
           }),
         ];
@@ -126,19 +132,14 @@ export default function SearchByLocal() {
   }, [searchLocal]);
 
   return (
-    <Dialog
-      open={searchLocal.isOpen}
-      onOpenChange={() =>
-        setSearchLocal((prev) => ({ ...prev, isOpen: !prev.isOpen }))
-      }
-    >
+    <Dialog open={isOpen} onOpenChange={() => setIsOpen(!isOpen)}>
       <DialogTitle className="sr-only">
         Search by city, ward or ZIP Code
       </DialogTitle>
-      <DialogTrigger className="bg-transparent p-0">
-        <Button>Shop My Local</Button>
+      <DialogTrigger className="bg-transparent p-0  outline-none hover:outline-none hover:border-none active:border-none">
+        <Button className="w-auto">Shop My Local</Button>
       </DialogTrigger>
-      <DialogContent className="w-[90%] md:w-1/2 lg:w-1/3 ">
+      <DialogContent className="w-[90%] md:w-1/2 lg:w-1/3 overflow-y-auto">
         <DialogHeader>
           <DialogDescription>
             <Input
@@ -149,7 +150,7 @@ export default function SearchByLocal() {
               autoFocus
             ></Input>
           </DialogDescription>
-          <div className="flex flex-col gap-2 max-h-[50vw] overflow-y-auto">
+          <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto">
             {loadingLocal &&
               [1, 2, 3].map((_, i) => (
                 <div key={i} className="flex flex-col gap-2">

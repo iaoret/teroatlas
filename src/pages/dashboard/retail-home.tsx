@@ -6,7 +6,9 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import { SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SearchByLocal from "@/components/shop-my-local";
+import ShopByLocal from "@/components/shop-my-local";
+import environments from "@/environments";
+import ProductOnResult from "@/components/product-on-result";
 
 export default function RetailHome() {
   const [search, setSearch] = useState<{
@@ -16,31 +18,18 @@ export default function RetailHome() {
           title: string;
           price: number;
           image: string;
+          vendor: string;
         }[]
       | undefined;
+    searchInfo: string | undefined;
   }>({
     search: "",
     searchResults: undefined,
+    searchInfo: undefined,
   });
-  // const [searchLocal, setSearchLocal] = useState<{
-  //   isOpen: boolean;
-  //   search: string;
-  //   searchResults:
-  //     | {
-  //         place: string;
-  //         type: string;
-  //         key: string;
-  //       }[]
-  //     | undefined;
-  // }>({
-  //   isOpen: false,
-  //   search: "",
-  //   searchResults: undefined,
-  // });
   const [loading, setLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const inputSearchByLocalRef = useRef<HTMLInputElement>(null);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const navigate = useNavigate();
@@ -58,32 +47,62 @@ export default function RetailHome() {
   );
 
   function clearSearch() {
-    setSearch({ search: "", searchResults: undefined });
+    setSearch({ search: "", searchResults: undefined, searchInfo: undefined });
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  function handleMakeSearch() {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    setLoading(true);
+
+    debounceTimeout.current = setTimeout(async () => {
+      const response = await fetch(
+        `${environments.urlRest}/q5_dc_retail_inventory_mocked?product=ilike.*${search.search}*&limit=100`,
+        {
+          headers: {
+            Prefer: "count=exact",
+          },
+        }
+      );
+
+      const products: {
+        id: number;
+        product: string;
+        retailer: string;
+        price: number;
+        zip_code: number;
+        id_q1_dc_zip_codes: number;
+        id_q3_dc_wards: number;
+        id_q1_dc_congressional_district: number;
+      }[] = await response.json();
+
+      const range = await response.headers.get("Content-Range");
+
+      setLoading(false);
+      setSearch((prev) => ({
+        ...prev,
+        searchInfo:
+          products.length === 0
+            ? `No products match your criteria`
+            : `Showing ${products.length} results out of ${
+                range?.split("/")[1]
+              } products matching that criteria`,
+        searchResults: products.map((e) => {
+          return {
+            title: e.product,
+            price: e.price,
+            vendor: e.retailer,
+            image: `https://placehold.co/80x70?text=${e.product} (${e.id})`,
+          };
+        }),
+      }));
+    }, 500);
   }
 
   useEffect(() => {
-    function handleMakeSearch() {
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
-
-      setLoading(true);
-
-      debounceTimeout.current = setTimeout(() => {
-        setLoading(false);
-        setSearch((prev) => ({
-          ...prev,
-          searchResults: Array.from({ length: 50 }).map((_, i) => {
-            return {
-              title: "Product no" + i,
-              price: Math.floor(Math.random() * 10000) / 100,
-              image: "https://placehold.co/80x70?text=Click me!",
-            };
-          }),
-        }));
-      }, 500);
-    }
-
     const down = (e: KeyboardEvent) => {
       if (
         e.key === `Enter` &&
@@ -95,7 +114,7 @@ export default function RetailHome() {
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [inputRef, inputSearchByLocalRef, search]);
+  }, [inputRef, handleMakeSearch, search]);
 
   return (
     <div className="flex flex-row">
@@ -127,8 +146,12 @@ export default function RetailHome() {
               />
             )}
           </div>
-          {search.searchResults && <SearchByLocal />}
+          <Button onClick={handleMakeSearch}>Search</Button>
+          {search.searchResults && <ShopByLocal searchKey={search.search} />}
         </div>
+        {search.searchInfo && (
+          <p className="text-sm italic text-gray-500">{search.searchInfo}</p>
+        )}
         {(loading || search.searchResults) && (
           <div className="flex flex-row gap-2 flex-wrap items-center justify-center p-6 h-full w-full overflow-y-auto">
             {loading &&
@@ -141,6 +164,7 @@ export default function RetailHome() {
                 <ProductOnResult
                   key={i}
                   title={result.title}
+                  vendor={result.vendor}
                   image={result.image}
                   price={result.price}
                 />
@@ -230,25 +254,6 @@ function ProductOnCard(props: { title: string; image: string }) {
         className="w-auto h-full rounded-sm object-cover mt-1"
       />
       <p className="text-sm text-center mt-1">{props.title}</p>
-    </div>
-  );
-}
-
-function ProductOnResult(props: {
-  title: string;
-  image: string;
-  price: number;
-}) {
-  return (
-    <div className="h-[150px] flex flex-col items-center justify-between hover:scale-110 transition-all duration-300 hover:cursor-pointer">
-      <img
-        src={props.image}
-        className="w-auto h-full rounded-sm object-cover mt-1"
-      />
-      <p className="font-semibold text-center mt-1">{props.title}</p>
-      <p className="text-xs text-center mt-1">
-        ${props.price.toLocaleString()}
-      </p>
     </div>
   );
 }
