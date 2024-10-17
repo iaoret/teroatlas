@@ -10,7 +10,13 @@ import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Search } from "lucide-react";
+import {
+  ChevronDown,
+  FilterIcon,
+  Search,
+  SearchIcon,
+  XIcon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,7 +92,7 @@ export default function EconomicData() {
     }, 500);
   }
 
-  function clearSearch(e?: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+  function clearSearch(e?: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     if (e) e.preventDefault();
     setSearch("");
     setShowDashboard(false);
@@ -271,45 +277,50 @@ export default function EconomicData() {
             url={`${environment.urlTiles}/public.q1_dc_congressional_district/{z}/{x}/{y}.pbf`}
             format={new MVT()}
           />
-          <RControl.RCustom className="top-[15px] left-[15px] bg-slate-50 rounded-md text-slate-900 z-[1000]">
+          <RControl.RCustom
+            className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px]`}
+          >
             <Button
               className="p-2 w-[36px] h-[36px] flex justify-center"
               onClick={handleGoBack}
             >
               <ArrowBack className="h-4 w-4" />
             </Button>
-          </RControl.RCustom>
-          <RControl.RCustom className="top-[15px] left-[50%] translate-x-[-50%] w-1/2 max-w-[80%] h-[36px] bg-slate-50 rounded-md text-slate-900 z-[1000] shadow-sm shadow-gray ">
             <Dialog
               open={isSearching}
               onOpenChange={() => setIsSearching(!isSearching)}
             >
               <DialogTitle className="sr-only">Search by anything</DialogTitle>
-              <DialogTrigger className="w-full h-full flex flex-row items-center justify-between rounded-md pl-2  max-w-full max-h-full text-ellipsis overflow-hidden word">
-                <div className="flex flex-row w-full h-full items-center gap-2">
-                  <Search className="h-4 w-4 " />
-                  {search === "" ? (
-                    <p className="font-light text-left italic text-slate-600">
-                      Search by anything (Ctrl + F or K)
-                    </p>
-                  ) : (
-                    <p className="font-light text-left italic text-slate-600 leading-tight">
-                      Searching by "{search}"{" "}
-                    </p>
-                  )}
-                </div>
-                {search !== "" && (
-                  <Button
-                    variant={"ghost"}
-                    size={"icon"}
-                    className="hover:bg-transparent hover:text-slate-600 hover:border-transparent"
-                    onClick={(e) => clearSearch(e)}
+              <DialogTrigger className="min-w-full pr-[90px] bg-transparent hover:outline-none outline-none ">
+                <div className="w-full h-full flex flex-row gap-2 justify-center">
+                  <div
+                    className={` bg-slate-100 hover:bg-slate-200 hover:bg-opacity-90 transition-all duration-150
+                     border-slate-400 rounded-lg shadow w-full md:w-2/3 lg:w-1/3 ${
+                       search ? "w-auto" : ""
+                     }
+                     hover:shadow-sm hover:outline-1 outline-1 pr-4 pl-4 pt-2 pb-2 m-[1px]
+                     text-sm font-light text-left italic flex flex-row items-center gap-2`}
                   >
-                    <Cross2Icon className="h-4 w-4" />
-                  </Button>
-                )}
+                    <SearchIcon className="h-4 w-4 text-slate-600" />
+                    {!search && "Search by anything (Ctrl + F or K)"}
+                    {search && (
+                      <p className="font-light text-left italic text-slate-600 leading-tight w-full text-nowrap truncate">
+                        Searching by "{search}"{" "}
+                      </p>
+                    )}
+                    {search && (
+                      <div
+                        onClick={clearSearch}
+                        className="hover:cursor-pointer"
+                      >
+                        <XIcon className="h-4 w-4 text-slate-600 hover:text-gray-900" />
+                      </div>
+                    )}
+                  </div>
+                  {showDashboard && <Button> Modify Filters</Button>}
+                </div>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[90%] md:max-w-2/3  w-[90%] md:w-2/3">
                 <DialogHeader>
                   <DialogDescription>
                     <Input
@@ -317,6 +328,7 @@ export default function EconomicData() {
                       value={search}
                       onInput={handleSearch}
                       autoFocus
+                      className="text-nowrap"
                     ></Input>
                   </DialogDescription>
                 </DialogHeader>
@@ -332,15 +344,7 @@ export default function EconomicData() {
               </DialogContent>
             </Dialog>
           </RControl.RCustom>
-          <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center">
-            {/* <div onClick={() => setShowDashboard(!showDashboard)}>
-              <ChevronLeft
-                className={`${
-                  showDashboard ? "rotate-180" : ""
-                } transition-all duration-200 hover:cursor-pointer`}
-              />
-            </div> */}
-          </RControl.RCustom>
+          <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center"></RControl.RCustom>
           {/* <RControl.RCustom
             className={`${
               showDashboard ? "opacity-100" : "opacity-0"
