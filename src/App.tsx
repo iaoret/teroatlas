@@ -1,9 +1,9 @@
-import { ThemeProvider } from "./components/theme-provider";
+import { ThemeProvider } from "./components/theme-provider.tsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import Home from "./pages/Home";
-import EconomicData from "./pages/Dashboard/EconomicData";
-import RetailHome from "./pages/Dashboard/RetailHome";
-import RetailMap from "./pages/Dashboard/RetailMap";
+import Home from "./pages/Home.tsx";
+import EconomicData from "./pages/Dashboard/economic-data.tsx";
+import RetailHome from "./pages/Dashboard/retail-home.tsx";
+import RetailMap from "./pages/Dashboard/retail-map.tsx";
 
 const router = createBrowserRouter([
   {
