@@ -10,13 +10,7 @@ import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import {
-  ChevronDown,
-  FilterIcon,
-  Search,
-  SearchIcon,
-  XIcon,
-} from "lucide-react";
+import { ChevronDown, SearchIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +29,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Cross2Icon } from "@radix-ui/react-icons";
 import SearchMatrix from "@/components/search-matrix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseBox } from "@/lib/parseBox";
