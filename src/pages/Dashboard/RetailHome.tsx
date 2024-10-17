@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import environments from "@/environments";
 
 export default function RetailHome() {
   const [search, setSearch] = useState<{
@@ -35,7 +36,7 @@ export default function RetailHome() {
     searchResults:
       | {
           place: string;
-          type: "city" | "ward" | "zip";
+          type: string;
           key: string;
         }[]
       | undefined;
@@ -66,7 +67,7 @@ export default function RetailHome() {
   );
 
   const handleSearchByLocal = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchLocal((prev) => ({
         ...prev,
         search: e.target.value,
@@ -74,32 +75,70 @@ export default function RetailHome() {
       if (debounceTimeout.current) {
         clearTimeout(debounceTimeout.current);
       }
+      debounceTimeout.current = setTimeout(async () => {
+        const search = e.target.value;
 
-      setLoadingLocal(true);
+        if (!search) {
+          setSearchLocal((prev) => ({
+            ...prev,
+            searchResults: undefined,
+          }));
+        }
 
-      debounceTimeout.current = setTimeout(() => {
+        setLoadingLocal(true);
+
+        const congressionalDistricts = await fetch(
+          `${environments.urlRest}/q1_dc_congressional_district?namelsad20=ilike.*${search}*&order=namelsad20.asc`
+        ).then((res) => res.json());
+
+        const wards = await fetch(
+          `${environments.urlRest}/q3_dc_wards?NAME=ilike.*${search}*&order=NAME.asc`
+        ).then((res) => res.json());
+
+        const zipCodes = await fetch(
+          `${environments.urlRest}/q1_dc_zip_codes?ZIP_CODE_TEXT=ilike.*${search}*&order=ZIP_CODE_TEXT.asc`
+        ).then((res) => res.json());
+
+        const results = [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...congressionalDistricts.map((e: any) => {
+            return {
+              place: e.namelsad20,
+              type: "Congressional District",
+              key: `q1_dc_congressional_district&id=${e.id}`,
+            };
+          }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...wards.map((e: any) => {
+            return {
+              place: e["NAME"],
+              type: "Ward of DC",
+              key: `q3_dc_wards&id=${e.id}`,
+            };
+          }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...zipCodes.map((e: any) => {
+            return {
+              place: e["ZIP_CODE_TEXT"],
+              type: "ZIP Codes",
+              key: `q1_dc_zip_codes&id=${e.id}`,
+            };
+          }),
+        ];
+
         setSearchLocal((prev) => ({
           ...prev,
-          searchResults:
-            e.target.value === ""
-              ? undefined
-              : Array.from({ length: 3 }).map((_, i) => {
-                  return {
-                    place: "example" + i,
-                    type: "city",
-                    key: "example",
-                  };
-                }),
+          searchResults: results.length > 0 ? results : undefined,
         }));
         setLoadingLocal(false);
-      }, 500);
+      }, 200);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [searchLocal]
   );
 
   function handleMakeSearchByLocal(local: string) {
-    navigate(`/dashboard/retail-map?key=${local}`)
+    navigate(`/dashboard/retail-map?key=${local}`);
   }
 
   function clearSearch() {
@@ -193,7 +232,7 @@ export default function RetailHome() {
               <DialogTrigger className="bg-transparent p-0">
                 <Button>Shop My Local</Button>
               </DialogTrigger>
-              <DialogContent className="w-[90%] md:w-1/2 lg:w-1/3">
+              <DialogContent className="w-[90%] md:w-1/2 lg:w-1/3 ">
                 <DialogHeader>
                   <DialogDescription>
                     <Input
@@ -204,7 +243,7 @@ export default function RetailHome() {
                       autoFocus
                     ></Input>
                   </DialogDescription>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 max-h-[50vw] overflow-y-auto">
                     {loadingLocal &&
                       [1, 2, 3].map((_, i) => (
                         <div key={i} className="flex flex-col gap-2">
