@@ -271,7 +271,7 @@ export default function EconomicData() {
             format={new MVT()}
           />
           <RControl.RCustom
-            className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px]`}
+            className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px] `}
           >
             <Button
               className="p-2 w-[36px] h-[36px] flex justify-center"
@@ -284,7 +284,7 @@ export default function EconomicData() {
               onOpenChange={() => setIsSearching(!isSearching)}
             >
               <DialogTitle className="sr-only">Search by anything</DialogTitle>
-              <DialogTrigger className="min-w-full pr-[90px] bg-transparent hover:outline-none outline-none ">
+              <DialogTrigger className="min-w-full pr-[90px] bg-transparent hover:outline-none outline-none h-full">
                 <div className="w-full h-full flex flex-row gap-2 justify-center">
                   <div
                     className={` bg-slate-100 hover:bg-slate-200 hover:bg-opacity-90 transition-all duration-150
@@ -292,7 +292,7 @@ export default function EconomicData() {
                        search ? "w-auto" : ""
                      }
                      hover:shadow-sm hover:outline-1 outline-1 pr-4 pl-4 pt-2 pb-2 m-[1px]
-                     text-sm font-light text-left italic flex flex-row items-center gap-2`}
+                     text-sm font-light text-left italic flex flex-row items-center gap-2 min-h-full`}
                   >
                     <SearchIcon className="h-4 w-4 text-slate-600" />
                     {!search && "Search by anything (Ctrl + F or K)"}
@@ -310,7 +310,9 @@ export default function EconomicData() {
                       </div>
                     )}
                   </div>
-                  {showDashboard && <Button> Modify Filters</Button>}
+                  {showDashboard && (
+                    <Button className="w-auto"> Modify Filters</Button>
+                  )}
                 </div>
               </DialogTrigger>
               <DialogContent className="max-w-[90%] md:max-w-2/3  w-[90%] md:w-2/3">
