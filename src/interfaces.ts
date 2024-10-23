@@ -10,6 +10,18 @@ export interface Q1SearchResults {
   breadth: null;
 }
 
+export interface Q2SearchResults {
+  length: null;
+  time: null;
+  intensity: {
+    variable: string;
+    order: string;
+  };
+  breadth: {
+    naics: string;
+  };
+}
+
 export interface Q1DashboardData {
   boundingBox: number[];
   choroplethicData: {

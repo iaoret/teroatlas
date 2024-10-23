@@ -26,6 +26,7 @@ import {
   Q1Top10BySubUnit,
   Q1Totals,
   Q1SearchResults,
+  Q2SearchResults,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q1Dashboard from "@/components/q1-dashboard";
@@ -35,14 +36,15 @@ import DashboardSkeleton from "@/components/dashboard-skeleton";
 import DashboardStart from "@/components/dashboard-start";
 import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-display";
 import DropdownExportData from "@/components/dropdown-export-data";
+import Q2SearchMatrix from "@/components/q2-search-matrix";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
   const [search, setSearch] = useState(
-    "dc congressional district economic data"
+    "new York manufacturing economic data 1st congressional district"
   );
 
-  const [searchResults, setSearchResults] = useState<Q1SearchResults>({
+  const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
     time: { years: [2019, 2020, 2021, 2022] },
     intensity: {
@@ -50,6 +52,17 @@ export default function EconomicData() {
       order: "desc",
     },
     breadth: null,
+  });
+  const [q2SearchResults, setQ2SearchResults] = useState<Q2SearchResults>({
+    length: null,
+    time: null,
+    intensity: {
+      variable: "emp",
+      order: "desc",
+    },
+    breadth: {
+      naics: "31",
+    },
   });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -88,13 +101,22 @@ export default function EconomicData() {
   }
 
   function whatDashboardToRender(search: string) {
+    search = search.toLowerCase();
+
     if (
       search.includes("dc") &&
       search.includes("congressional district") &&
       search.includes("economic data")
-    ) {
+    )
       return "q1";
-    }
+
+    if (
+      search.includes("new york") &&
+      search.includes("manufacturing economic data") &&
+      search.includes("1st congressional district")
+    )
+      return "q2";
+
     return undefined;
   }
 
@@ -105,18 +127,18 @@ export default function EconomicData() {
       try {
         const q1Totals: Q1Totals[] = await fetch(
           environment.urlRest +
-            `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${searchResults.time.years.join(
+            `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${q1SearchResults.time.years.join(
               ","
             )}}`
         ).then((res) => res.json());
 
         const q1Top10BySubUnit: Q1Top10BySubUnit[] = await fetch(
           environment.urlRest +
-            `/rpc/get_top_10_zip_codes?district_id=1&years_set={${searchResults.time.years.join(
+            `/rpc/get_top_10_zip_codes?district_id=1&years_set={${q1SearchResults.time.years.join(
               ","
-            )}}&variable=${searchResults.intensity.variable}&order_direction=${
-              searchResults.intensity.order
-            }`
+            )}}&variable=${
+              q1SearchResults.intensity.variable
+            }&order_direction=${q1SearchResults.intensity.order}`
         ).then((res) => res.json());
 
         const boundingBox: number[] = await fetch(
@@ -164,9 +186,9 @@ export default function EconomicData() {
     }
     setLoading(false);
   }, [
-    searchResults.intensity.order,
-    searchResults.intensity.variable,
-    searchResults.time.years,
+    q1SearchResults.intensity.order,
+    q1SearchResults.intensity.variable,
+    q1SearchResults.time.years,
   ]);
 
   const buildDashboard = useCallback(
@@ -214,7 +236,10 @@ export default function EconomicData() {
           noDefaultControls
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-          <Q1Map dashboardData={dashboardData} searchResults={searchResults} />
+          <Q1Map
+            dashboardData={dashboardData}
+            searchResults={q1SearchResults}
+          />
           <RControl.RCustom
             className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px] `}
           >
@@ -279,8 +304,15 @@ export default function EconomicData() {
                   {dashboardKey === "q1" && (
                     <Q1SearchMatrix
                       buildDashboard={() => buildDashboard(dashboardKey)}
-                      setSearchResults={setSearchResults}
-                      searchResults={searchResults}
+                      setSearchResults={setQ1SearchResults}
+                      searchResults={q1SearchResults}
+                    />
+                  )}
+                  {dashboardKey === "q2" && (
+                    <Q2SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      setSearchResults={setQ2SearchResults}
+                      searchResults={q2SearchResults}
                     />
                   )}
                   {!dashboardKey && !loading && <>No results found</>}
@@ -303,7 +335,7 @@ export default function EconomicData() {
             {showDashboard && dashboardData && (
               <Q1Dashboard
                 dashboardData={dashboardData}
-                searchResults={searchResults}
+                searchResults={q1SearchResults}
               />
             )}
 
@@ -317,10 +349,12 @@ export default function EconomicData() {
               <DashboardBarChart
                 chartInfo={`Ordered by the
               ${
-                searchResults.intensity.order === "desc" ? "highest" : "lowest"
+                q1SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
               } value of
               ${
-                searchResults.intensity.variable === "est"
+                q1SearchResults.intensity.variable === "est"
                   ? "establishments"
                   : "employees"
               }
