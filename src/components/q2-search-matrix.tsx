@@ -166,7 +166,7 @@ export default function Q2SearchMatrix(props: {
                 },
                 {
                   title: "Highest Value (Emp.)",
-                  variable: "emp",
+                  variable: "aprox_emp",
                   order: "desc",
                 },
                 {
@@ -176,7 +176,7 @@ export default function Q2SearchMatrix(props: {
                 },
                 {
                   title: "Lowest Value (Emp.)",
-                  variable: "emp",
+                  variable: "aprox_emp",
                   order: "asc",
                 },
               ].map((item) => {

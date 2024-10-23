@@ -30,8 +30,10 @@ import {
   Q2Totals,
   Q2Top10BySubUnit,
   Q2DashboardData,
+  Q2Data,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
+import Q2Map from "@/components/q2-map";
 import Q1Dashboard from "@/components/q1-dashboard";
 import DashboardBarChart from "@/components/dashboard-bar-chart";
 import Q1SearchMatrix from "@/components/q1-search-matrix";
@@ -41,6 +43,7 @@ import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-d
 import DropdownExportData from "@/components/dropdown-export-data";
 import Q2SearchMatrix from "@/components/q2-search-matrix";
 import Q2Dashboard from "@/components/q2-dashboard";
+import { GeoJSON } from "geojson";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -61,11 +64,11 @@ export default function EconomicData() {
     length: null,
     time: null,
     intensity: {
-      variable: "emp",
+      variable: "aprox_emp",
       order: "desc",
     },
     breadth: {
-      naics: "31",
+      naics: "31---",
     },
   });
   const [isSearching, setIsSearching] = useState(false);
@@ -193,9 +196,7 @@ export default function EconomicData() {
       });
     }
     setLoading(false);
-  }, [
-    q1SearchResults
-  ]);
+  }, [q1SearchResults]);
 
   const buildDashboardQ2 = useCallback(async () => {
     async function fetchData() {
@@ -219,9 +220,15 @@ export default function EconomicData() {
             `/rpc/get_min_max_emp_est_by_district_and_naics_code_in_nys?district_id=1&naics_code=${q2SearchResults.breadth.naics}`
         ).then(async (res) => res.json());
 
+        const q2Data: Q2Data[] = await fetch(
+          environment.urlRest +
+            `/q2_zip_code_econ_data_with_geojson?id_q2_nys_congressional_districts=eq.1&naics=ilike.*${q2SearchResults.breadth.naics}*&limit=100`
+        ).then(async (res) => res.json());
+
         setQ2DashboardData({
           q2Totals: q2Totals,
           q2Top10BySubUnit: q2Top10BySubUnit,
+          q2Data: q2Data,
           boundingBox: boundingBox,
           choroplethicData: {
             minEmp: choropleticData[0].min_emp,
@@ -255,9 +262,7 @@ export default function EconomicData() {
       });
     }
     setLoading(false);
-  }, [
-    q2SearchResults
-  ]);
+  }, [q2SearchResults]);
 
   const buildDashboard = useCallback(
     async (key: string | undefined) => {
@@ -307,10 +312,18 @@ export default function EconomicData() {
           noDefaultControls
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-          <Q1Map
-            dashboardData={q1DashboardData}
-            searchResults={q1SearchResults}
-          />
+          {dashboardKey === "q1" && (
+            <Q1Map
+              dashboardData={q1DashboardData}
+              searchResults={q1SearchResults}
+            />
+          )}
+          {dashboardKey === "q2" && (
+            <Q2Map
+              dashboardData={q2DashboardData}
+              searchResults={q2SearchResults}
+            />
+          )}
           <RControl.RCustom
             className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px] `}
           >
