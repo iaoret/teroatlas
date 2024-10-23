@@ -34,14 +34,36 @@ export interface Q1DashboardData {
   q1Top10BySubUnit: Q1Top10BySubUnit[];
   chartInfo: string;
 }
+export interface Q2DashboardData {
+  boundingBox: number[];
+  choroplethicData: {
+    maxEmp: number;
+    maxEst: number;
+    minEmp: number;
+    minEst: number;
+  };
+  q2Totals: Q2Totals[];
+  q2Top10BySubUnit: Q2Top10BySubUnit[];
+  chartInfo: string;
+}
 
 export interface Q1Totals {
-  total_emp: number;
-  total_est: number;
+  total_emp: number | null;
+  total_est: number | null;
 }
 
 export interface Q1Top10BySubUnit {
-  zip: number;
-  name: string;
-  total: number;
+  zip: number | null;
+  name: string | null;
+  total: number | null;
+}
+export interface Q2Totals {
+  total_emp: number | null;
+  total_est: number | null;
+}
+
+export interface Q2Top10BySubUnit {
+  zip: number | null;
+  name: string | null;
+  total: number | null;
 }

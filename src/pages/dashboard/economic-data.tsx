@@ -27,6 +27,9 @@ import {
   Q1Totals,
   Q1SearchResults,
   Q2SearchResults,
+  Q2Totals,
+  Q2Top10BySubUnit,
+  Q2DashboardData,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q1Dashboard from "@/components/q1-dashboard";
@@ -37,6 +40,7 @@ import DashboardStart from "@/components/dashboard-start";
 import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-display";
 import DropdownExportData from "@/components/dropdown-export-data";
 import Q2SearchMatrix from "@/components/q2-search-matrix";
+import Q2Dashboard from "@/components/q2-dashboard";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -68,8 +72,11 @@ export default function EconomicData() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const [dashboardData, setDashboardData] = useState<
+  const [q1DashboardData, setQ1DashboardData] = useState<
     Q1DashboardData | undefined
+  >();
+  const [q2DashboardData, setQ2DashboardData] = useState<
+    Q2DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -93,7 +100,8 @@ export default function EconomicData() {
     setSearch("");
     setShowDashboard(false);
     setIsSearching(false);
-    setDashboardData(undefined);
+    setQ1DashboardData(undefined);
+    setQ2DashboardData(undefined);
   }
 
   function handleGoBack() {
@@ -149,7 +157,7 @@ export default function EconomicData() {
           environment.urlRest + `/rpc/get_min_max_emp_est`
         ).then(async (res) => res.json());
 
-        setDashboardData({
+        setQ1DashboardData({
           q1Totals: q1Totals,
           q1Top10BySubUnit: q1Top10BySubUnit,
           boundingBox: boundingBox,
@@ -186,9 +194,69 @@ export default function EconomicData() {
     }
     setLoading(false);
   }, [
-    q1SearchResults.intensity.order,
-    q1SearchResults.intensity.variable,
-    q1SearchResults.time.years,
+    q1SearchResults
+  ]);
+
+  const buildDashboardQ2 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q2Totals: Q2Totals[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_total_emp_est_by_district_and_naics_in_nys?district_id=1&naics_code=${q2SearchResults.breadth.naics}`
+        ).then((res) => res.json());
+
+        const q2Top10BySubUnit: Q2Top10BySubUnit[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_top_10_zip_codes_nys_by_district_id_naics_code?district_id=1&naics_code=${q2SearchResults.breadth.naics}&variable=${q2SearchResults.intensity.variable}&order_direction=${q2SearchResults.intensity.order}`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest + `/rpc/get_q2_extent`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest +
+            `/rpc/get_min_max_emp_est_by_district_and_naics_code_in_nys?district_id=1&naics_code=${q2SearchResults.breadth.naics}`
+        ).then(async (res) => res.json());
+
+        setQ2DashboardData({
+          q2Totals: q2Totals,
+          q2Top10BySubUnit: q2Top10BySubUnit,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minEmp: choropleticData[0].min_emp,
+            maxEmp: choropleticData[0].max_emp,
+            minEst: choropleticData[0].min_est,
+            maxEst: choropleticData[0].max_est,
+          },
+          chartInfo: "",
+        });
+
+        return {
+          q1Totals: q2Totals,
+          q1Top10BySubUnit: q2Top10BySubUnit,
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, [
+    q2SearchResults
   ]);
 
   const buildDashboard = useCallback(
@@ -197,8 +265,11 @@ export default function EconomicData() {
       if (key === "q1") {
         await buildDashboardQ1();
       }
+      if (key === "q2") {
+        await buildDashboardQ2();
+      }
     },
-    [buildDashboardQ1]
+    [buildDashboardQ1, buildDashboardQ2]
   );
 
   useEffect(() => {
@@ -237,7 +308,7 @@ export default function EconomicData() {
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           <Q1Map
-            dashboardData={dashboardData}
+            dashboardData={q1DashboardData}
             searchResults={q1SearchResults}
           />
           <RControl.RCustom
@@ -332,10 +403,17 @@ export default function EconomicData() {
         {showDashboard && loading && <DashboardSkeleton />}
         {showDashboard && !loading && (
           <div className="w-full flex flex-col justify-between items-center pt-4 pb-4 max-h-[100vh] h-[100vh] overflow-y-auto">
-            {showDashboard && dashboardData && (
+            {showDashboard && q1DashboardData && dashboardKey === `q1` && (
               <Q1Dashboard
-                dashboardData={dashboardData}
+                dashboardData={q1DashboardData}
                 searchResults={q1SearchResults}
+              />
+            )}
+
+            {showDashboard && q2DashboardData && dashboardKey === `q2` && (
+              <Q2Dashboard
+                dashboardData={q2DashboardData}
+                searchResults={q2SearchResults}
               />
             )}
 
@@ -345,7 +423,7 @@ export default function EconomicData() {
               <DropdownCustomizeDataDisplay />
             </div>
 
-            {dashboardData && (
+            {showDashboard && q1DashboardData && dashboardKey === `q1` && (
               <DashboardBarChart
                 chartInfo={`Ordered by the
               ${
@@ -359,7 +437,27 @@ export default function EconomicData() {
                   : "employees"
               }
               `}
-                data={dashboardData.q1Top10BySubUnit}
+                data={q1DashboardData.q1Top10BySubUnit}
+                dataKeyXAxis="zip"
+                dataKeyBar="total"
+              />
+            )}
+
+            {showDashboard && q2DashboardData && dashboardKey === `q2` && (
+              <DashboardBarChart
+                chartInfo={`Ordered by the
+              ${
+                q2SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
+              } value of
+              ${
+                q2SearchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                data={q2DashboardData.q2Top10BySubUnit}
                 dataKeyXAxis="zip"
                 dataKeyBar="total"
               />
