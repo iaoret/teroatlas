@@ -10,6 +10,20 @@ export interface SearchResults {
   breadth: null;
 }
 
+export interface DashboardData {
+  boundingBox: number[];
+  choroplethicData: {
+    maxEmp: number;
+    maxEst: number;
+    minEmp: number;
+    minEst: number;
+  };
+  q1Totals: Q1Totals[];
+  q1Top10BySubUnit: Q1Top10BySubUnit[];
+  chartInfo: string;
+}
+    
+
 export interface Q1Totals {
   total_emp: number;
   total_est: number;

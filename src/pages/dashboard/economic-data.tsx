@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import "ol/ol.css";
-import { RControl, RLayerTile, RLayerVectorTile, RMap } from "rlayers";
+import { RControl, RLayerTile, RMap } from "rlayers";
 //@ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'ROSM'.
 import { RView } from "rlayers/RMap";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { MVT } from "ol/format";
-import { Fill, Stroke, Style } from "ol/style";
 import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
@@ -18,8 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChartContainer } from "@/components/ui/chart";
-import { Bar, BarChart, Legend, Tooltip, XAxis, YAxis } from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -33,13 +29,21 @@ import SearchMatrix from "@/components/search-matrix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseBox } from "@/lib/parseBox";
 import { Separator } from "@/components/ui/separator";
-import getChoroplethColor from "@/lib/getChoroplethColor";
-import { FeatureLike } from "ol/Feature";
-import { Q1Top10BySubUnit, Q1Totals, SearchResults } from "@/interfaces";
+import {
+  DashboardData,
+  Q1Top10BySubUnit,
+  Q1Totals,
+  SearchResults,
+} from "@/interfaces";
+import Q1Map from "@/components/q1-map";
+import Q1Dashboard from "@/components/q1-dashboard";
+import DashboardBarChart from "@/components/dashboard-bar-chart";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    "dc congressional district economic data"
+  );
 
   const [searchResults, setSearchResults] = useState<SearchResults>({
     length: null,
@@ -55,18 +59,7 @@ export default function EconomicData() {
   const [loading, setLoading] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [dashboardData, setDashboardData] = useState<
-    | {
-        boundingBox: number[];
-        choroplethicData: {
-          maxEmp: number;
-          maxEst: number;
-          minEmp: number;
-          minEst: number;
-        };
-        q1Totals: Q1Totals[];
-        q1Top10BySubUnit: Q1Top10BySubUnit[];
-      }
-    | undefined
+    DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -134,6 +127,7 @@ export default function EconomicData() {
             minEst: choropleticData[0].min_est,
             maxEst: choropleticData[0].max_est,
           },
+          chartInfo: "",
         });
 
         return {
@@ -206,70 +200,7 @@ export default function EconomicData() {
           noDefaultControls
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-          <RLayerVectorTile
-            url={`${
-              environment.urlTiles
-            }/public.q1_tile_function/{z}/{x}/{y}.pbf?years_set={${searchResults.time.years.join(
-              ","
-            )}}`}
-            format={new MVT()}
-            style={useCallback(
-              (feature: FeatureLike) => {
-                if (!dashboardData) return;
-                const value = feature.get(searchResults.intensity.variable);
-
-                return new Style({
-                  stroke: new Stroke({
-                    color: "#00447C",
-                    width: 1,
-                  }),
-                  fill: new Fill({
-                    color: getChoroplethColor(
-                      value,
-                      dashboardData?.choroplethicData[
-                        searchResults.intensity.variable === "emp"
-                          ? "maxEmp"
-                          : "maxEst"
-                      ],
-                      dashboardData?.choroplethicData[
-                        searchResults.intensity.variable === "emp"
-                          ? "minEmp"
-                          : "minEst"
-                      ],
-                      [255, 255, 255],
-                      [12, 63, 150],
-                      0.3
-                    ),
-                  }),
-                });
-              },
-              [dashboardData, searchResults]
-            )}
-            // onPointerMove={(e) => {
-            //   console.log(e.target.getProperties());
-            // }}
-            onClick={(e) => {
-              console.log(e.target.getProperties());
-            }}
-          />
-          <RLayerVectorTile
-            // TODO: this logic here can be used for the MVP, need to make the selectedGeometry more dynamic
-            style={useCallback(
-              () =>
-                new Style({
-                  stroke: new Stroke({
-                    color: dashboardData ? "#ff0000" : "#00000000",
-                    width: 5,
-                  }),
-                  fill: new Fill({
-                    color: "#00000000",
-                  }),
-                }),
-              [dashboardData]
-            )}
-            url={`${environment.urlTiles}/public.q1_dc_congressional_district/{z}/{x}/{y}.pbf`}
-            format={new MVT()}
-          />
+          <Q1Map dashboardData={dashboardData} searchResults={searchResults} />
           <RControl.RCustom
             className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px] `}
           >
@@ -340,22 +271,6 @@ export default function EconomicData() {
             </Dialog>
           </RControl.RCustom>
           <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center"></RControl.RCustom>
-          {/* <RControl.RCustom
-            className={`${
-              showDashboard ? "opacity-100" : "opacity-0"
-            } bottom-[15px] left-[25%] w-1/2 z-[1000] shadow-sm shadow-gray transition-all duration-100`}
-          >
-            <Tabs defaultValue="account" className="min-w-full">
-              <TabsList className="grid w-full grid-cols-2 gap-2 p-2">
-                <TabsTrigger value="employees" className="w-full">
-                  Employees
-                </TabsTrigger>
-                <TabsTrigger value="establishments" className="w-full">
-                  Establishments
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </RControl.RCustom> */}
         </RMap>
       </div>
       <div
@@ -392,38 +307,11 @@ export default function EconomicData() {
         )}
         {showDashboard && !loading && (
           <div className="w-full flex flex-col justify-between items-center pt-4 pb-4 max-h-[100vh] h-[100vh] overflow-y-auto">
-            {showDashboard && dashboardData?.q1Totals && (
-              <div className="flex flex-col justify-center items-center">
-                <h2 className="text-2xl font-semibold text-center mt-4 mb-4">
-                  District of Columbia (Congressional District)
-                </h2>
-
-                <Separator className="mt-4 mb-4" />
-                <div className="text-center">
-                  <h2 className="text-8xl font-bold text-tero-100">
-                    {dashboardData.q1Totals[0].total_emp.toLocaleString(
-                      "en-US"
-                    )}
-                  </h2>
-                  <h2 className="text-xl font-semibold text-tero-100 mt-1">
-                    Employees
-                  </h2>
-                </div>
-                <div className="text-center">
-                  <h2 className="text-8xl font-bold">
-                    {dashboardData.q1Totals[0].total_est.toLocaleString(
-                      "en-US"
-                    )}
-                  </h2>
-                  <h2 className="text-xl font-semibold mt-1">Establishments</h2>
-                </div>
-                <h2 className="text-xs italic text-slate-600 text-center mt-4">
-                  Calculated using data from 54 ZIP Codes within target
-                  geography in the{" "}
-                  {searchResults.time.years.length === 1 ? "year of" : "years"}{" "}
-                  {searchResults.time.years.join(", ")}
-                </h2>
-              </div>
+            {showDashboard && dashboardData && (
+              <Q1Dashboard
+                dashboardData={dashboardData}
+                searchResults={searchResults}
+              />
             )}
 
             <Separator className="mt-4 mb-4" />
@@ -452,46 +340,25 @@ export default function EconomicData() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <h2 className="text-2xl font-bold">
-                Top 10 Observations by Sub-Unit
-              </h2>
-
-              <p className="text-xs italic text-slate-600">
-                Ordered by the{" "}
-                {searchResults.intensity.order === "desc" && "highest"}{" "}
-                {searchResults.intensity.order === "asc" && "lowest"} value of{" "}
-                {searchResults.intensity.variable === "est" && "establishments"}
-                {searchResults.intensity.variable === "emp" && "employees"}
-              </p>
-              {dashboardData?.q1Top10BySubUnit && (
-                <ChartContainer
-                  config={{
-                    desktop: {
-                      label: "Desktop",
-                      color: "#2563eb",
-                    },
-                    mobile: {
-                      label: "Mobile",
-                      color: "#60a5fa",
-                    },
-                  }}
-                  className="h-full w-full mt-4 mb-4"
-                >
-                  <BarChart
-                    width={400}
-                    height={500}
-                    data={dashboardData.q1Top10BySubUnit}
-                  >
-                    <Bar dataKey={"total"} fill={"#4285F4"} />
-                    <XAxis dataKey="zip" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                  </BarChart>
-                </ChartContainer>
-              )}
             </div>
+
+            {dashboardData && (
+              <DashboardBarChart
+                chartInfo={`Ordered by the
+              ${
+                searchResults.intensity.order === "desc" ? "highest" : "lowest"
+              } value of
+              ${
+                searchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                data={dashboardData.q1Top10BySubUnit}
+                dataKeyXAxis="zip"
+                dataKeyBar="total"
+              />
+            )}
 
             <Separator className="mt-4 mb-4" />
             <DropdownMenu>
