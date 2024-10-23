@@ -1,4 +1,4 @@
-export interface SearchResults {
+export interface Q1SearchResults {
   length: null;
   time: {
     years: number[];
@@ -10,7 +10,7 @@ export interface SearchResults {
   breadth: null;
 }
 
-export interface DashboardData {
+export interface Q1DashboardData {
   boundingBox: number[];
   choroplethicData: {
     maxEmp: number;
@@ -22,7 +22,6 @@ export interface DashboardData {
   q1Top10BySubUnit: Q1Top10BySubUnit[];
   chartInfo: string;
 }
-    
 
 export interface Q1Totals {
   total_emp: number;

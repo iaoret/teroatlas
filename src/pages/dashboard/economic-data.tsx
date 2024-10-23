@@ -25,19 +25,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import SearchMatrix from "@/components/search-matrix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseBox } from "@/lib/parseBox";
 import { Separator } from "@/components/ui/separator";
 import {
-  DashboardData,
+  Q1DashboardData,
   Q1Top10BySubUnit,
   Q1Totals,
-  SearchResults,
+  Q1SearchResults,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q1Dashboard from "@/components/q1-dashboard";
 import DashboardBarChart from "@/components/dashboard-bar-chart";
+import Q1SearchMatrix from "@/components/q1-search-matrix";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -45,7 +45,7 @@ export default function EconomicData() {
     "dc congressional district economic data"
   );
 
-  const [searchResults, setSearchResults] = useState<SearchResults>({
+  const [searchResults, setSearchResults] = useState<Q1SearchResults>({
     length: null,
     time: { years: [2019, 2020, 2021, 2022] },
     intensity: {
@@ -59,7 +59,7 @@ export default function EconomicData() {
   const [loading, setLoading] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [dashboardData, setDashboardData] = useState<
-    DashboardData | undefined
+    Q1DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -90,7 +90,20 @@ export default function EconomicData() {
     navigate(-1);
   }
 
-  const buildDashboard = useCallback(async () => {
+  function whatDashboardToRender(search: string) {
+    if (
+      search.includes("dc") &&
+      search.includes("congressional district") &&
+      search.includes("economic data")
+    ) {
+      return "q1";
+    }
+    return undefined;
+  }
+
+  const dashboardKey = whatDashboardToRender(search);
+
+  const buildDashboardQ1 = useCallback(async () => {
     async function fetchData() {
       try {
         const q1Totals: Q1Totals[] = await fetch(
@@ -159,6 +172,16 @@ export default function EconomicData() {
     searchResults.time.years,
   ]);
 
+  const buildDashboard = useCallback(
+    async (key: string | undefined) => {
+      if (!key) return;
+      if (key === "q1") {
+        await buildDashboardQ1();
+      }
+    },
+    [buildDashboardQ1]
+  );
+
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
@@ -171,19 +194,13 @@ export default function EconomicData() {
         clearSearch();
       }
 
-      if (
-        e.key === `Enter` &&
-        search.includes("dc") &&
-        search.includes("congressional district") &&
-        search.includes("economic data") &&
-        isSearching
-      ) {
-        buildDashboard();
+      if (e.key === `Enter` && isSearching) {
+        buildDashboard(dashboardKey);
       }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [buildDashboard, isSearching, search]);
+  }, [buildDashboard, dashboardKey, isSearching, search]);
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -259,13 +276,17 @@ export default function EconomicData() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center min-w-[50vw]">
-                  <SearchMatrix
-                    loading={loading}
-                    search={search}
-                    buildDashboard={buildDashboard}
-                    setSearchResults={setSearchResults}
-                    searchResults={searchResults}
-                  />
+                  {loading && !dashboardKey && (
+                    <Skeleton className="min-w-[100%] w-full h-[500px]" />
+                  )}
+                  {dashboardKey === "q1" && (
+                    <Q1SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      setSearchResults={setSearchResults}
+                      searchResults={searchResults}
+                    />
+                  )}
+                  {!dashboardKey && !loading && <>No results found</>}
                 </div>
               </DialogContent>
             </Dialog>

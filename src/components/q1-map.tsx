@@ -5,11 +5,11 @@ import { Style, Stroke, Fill } from "ol/style";
 import { useCallback } from "react";
 import { RLayerVectorTile } from "rlayers";
 import environment from "@/environments";
-import { SearchResults, DashboardData } from "@/interfaces";
+import { Q1SearchResults, Q1DashboardData } from "@/interfaces";
 
 export default function Q1Map(props: {
-  dashboardData: DashboardData | undefined;
-  searchResults: SearchResults;
+  dashboardData: Q1DashboardData | undefined;
+  searchResults: Q1SearchResults;
 }) {
   return (
     <>

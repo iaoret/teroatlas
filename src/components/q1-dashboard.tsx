@@ -1,9 +1,9 @@
-import { SearchResults, DashboardData } from "@/interfaces";
+import { Q1SearchResults, Q1DashboardData } from "@/interfaces";
 import { Separator } from "./ui/separator";
 
 export default function Q1Dashboard(props: {
-  dashboardData: DashboardData;
-  searchResults: SearchResults;
+  dashboardData: Q1DashboardData;
+  searchResults: Q1SearchResults;
 }) {
   return (
     <div className="flex flex-col justify-center items-center">
