@@ -8,14 +8,7 @@ import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, SearchIcon, XIcon } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SearchIcon, XIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +31,10 @@ import Q1Map from "@/components/q1-map";
 import Q1Dashboard from "@/components/q1-dashboard";
 import DashboardBarChart from "@/components/dashboard-bar-chart";
 import Q1SearchMatrix from "@/components/q1-search-matrix";
+import DashboardSkeleton from "@/components/dashboard-skeleton";
+import DashboardStart from "@/components/dashboard-start";
+import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-display";
+import DropdownExportData from "@/components/dropdown-export-data";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -299,33 +296,8 @@ export default function EconomicData() {
           showDashboard ? "w-[50vw] min-w-[50vw]" : "w-[200px] min-w-[200px]"
         } transition-all duration-200 flex flex-col justify-center z-20  bg-primary-foreground`}
       >
-        {!showDashboard && (
-          <div className="p-4 flex flex-col ">
-            <h2 className="text-8xl font-bold  text-tero-100">24</h2>
-            <h2 className="text-1xl  font-semibold text-tero-100">
-              Dashboards Available
-            </h2>
-            <p className="">
-              Type anything on the searchbar to navigate between dashboards
-            </p>
-          </div>
-        )}
-        {showDashboard && loading && (
-          <div className="flex flex-col justify-center items-center gap-4 max-h-screen overflow-y-auto">
-            <Skeleton className="w-2/3 h-[50px]" />
-            <Separator />
-            <Skeleton className="w-full h-[100px]" />
-            <Skeleton className="w-1/2 h-[30px]" />
-            <Skeleton className="w-full h-[100px]" />
-            <Skeleton className="w-1/2 h-[30px]" />
-            <Skeleton className="w-full h-[30px]" />
-            <Separator />
-            <Skeleton className="w-1/3 h-[60px]" />
-            <Skeleton className="w-full h-[400px]" />
-            <Separator />
-            <Skeleton className="h-[50px] w-1/2" />
-          </div>
-        )}
+        {!showDashboard && <DashboardStart />}
+        {showDashboard && loading && <DashboardSkeleton />}
         {showDashboard && !loading && (
           <div className="w-full flex flex-col justify-between items-center pt-4 pb-4 max-h-[100vh] h-[100vh] overflow-y-auto">
             {showDashboard && dashboardData && (
@@ -338,29 +310,7 @@ export default function EconomicData() {
             <Separator className="mt-4 mb-4" />
 
             <div className={"w-full flex flex-col items-center justify-center"}>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="hover:border-slate-400 transition-all duration-200 text-sm flex flex-row items-center justify-center">
-                  Customize Data Display &nbsp;{" "}
-                  <ChevronDown className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Data Table Preview
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Top 10 Observations by Unit
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Top 10 Observations by Sub-Unit
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Value Over Time
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <DropdownCustomizeDataDisplay />
             </div>
 
             {dashboardData && (
@@ -382,24 +332,8 @@ export default function EconomicData() {
             )}
 
             <Separator className="mt-4 mb-4" />
-            <DropdownMenu>
-              <DropdownMenuTrigger className="border-2 border-slate-600 hover:border-slate-400 transition-all duration-200">
-                Export Data
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .CSV
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .XLSX
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <DropdownExportData />
           </div>
         )}
       </div>
