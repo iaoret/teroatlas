@@ -29,8 +29,8 @@ export default function Q2Dashboard(props: {
         <h2 className="text-xl font-semibold mt-1">Establishments</h2>
       </div>
       <h2 className="text-xs italic text-slate-600 text-center mt-4">
-        Calculated using data from 130 ZIP Codes within target geography in the
-        year of 2022 for the NAICS code {props.searchResults.breadth.naics}
+        Calculated using data from ZIP Codes within target geography in the year
+        of 2022 for the NAICS code {props.searchResults.breadth.naics}
       </h2>
     </div>
   );

@@ -200,7 +200,7 @@ export default function Q2SearchMatrix(props: {
             </ul>
           </div>
           <div
-            className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center  border-gray-500 border-[1px] text-xs hover:cursor-pointer"
+            className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center  border-gray-500 border-[1px] text-xs hover:cursor-pointer text-tero-100 font-bold"
             onClick={handleClickOnBreadth}
           >
             {!isEditingNaicsCode &&
