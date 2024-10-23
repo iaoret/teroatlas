@@ -43,7 +43,6 @@ import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-d
 import DropdownExportData from "@/components/dropdown-export-data";
 import Q2SearchMatrix from "@/components/q2-search-matrix";
 import Q2Dashboard from "@/components/q2-dashboard";
-import { GeoJSON } from "geojson";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
