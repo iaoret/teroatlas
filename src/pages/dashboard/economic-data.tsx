@@ -56,6 +56,7 @@ import Q3Map from "@/components/q3-map";
 import Q3Dashboard from "@/components/q3-dashboard";
 import { DashboardTable } from "@/components/dashboard-table";
 import Q4SearchMatrix from "@/components/q4-search-matrix";
+import Q4Map from "@/components/q4-map";
 import Q4Dashboard from "@/components/q4-dashboard";
 import DashboardLineChart from "@/components/dashboard-line-chart";
 
@@ -503,6 +504,13 @@ export default function EconomicData() {
               key={`q3-map`}
               dashboardData={q3DashboardData}
               searchResults={q3SearchResults}
+            />
+          )}
+          {dashboardKey === "q4" && (
+            <Q4Map
+              key={`q4-map`}
+              dashboardData={q4DashboardData}
+              searchResults={q4SearchResults}
             />
           )}
           <RControl.RCustom

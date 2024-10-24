@@ -11,6 +11,9 @@ export default function Q4Dashboard(props: {
   const perc =
     props.dashboardData.q4Data[0].perc_gross_income_as_full_market_value;
   const numberObs = props.dashboardData.q4Data[0].number_of_obs;
+  const latestYear = Math.max(
+    ...props.dashboardData.q4HistoricalData.map((e) => e.year)
+  );
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -53,8 +56,7 @@ export default function Q4Dashboard(props: {
       </div>
       <h2 className="text-xs italic text-slate-600 text-center mt-4">
         Calculated using data from {numberObs} {numberObs > 1 ? "lots" : "lot"}{" "}
-        in the block, for the years of{" "}
-        {props.searchResults.time.years.join(", ")}
+        in the block, for the year of {latestYear}
       </h2>
     </div>
   );

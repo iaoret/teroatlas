@@ -2,7 +2,6 @@ import { Blocks } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dispatch, SetStateAction } from "react";
 import { Q4SearchResults } from "@/interfaces";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Q4SearchMatrix(props: {
   buildDashboard: () => void;
@@ -10,42 +9,6 @@ export default function Q4SearchMatrix(props: {
   searchResults: Q4SearchResults;
   setSearchResults: Dispatch<SetStateAction<Q4SearchResults>>;
 }) {
-  const { toast } = useToast();
-
-  function handleClickOnYear(year: number) {
-    console.log(
-      `years selected: ${props.searchResults.time.years}, just clicked on ${year}`
-    );
-    const currentYears = props.searchResults.time.years;
-
-    if (currentYears.includes(year)) {
-      const newYears = currentYears.filter((y) => y !== year);
-      if (newYears.length === 0) {
-        toast({
-          title: "No years selected",
-          description: "You must select at least one year",
-        });
-        console.log("oops, cant do that");
-        return;
-      }
-      props.setSearchResults({
-        ...props.searchResults,
-        time: {
-          ...props.searchResults.time,
-          years: newYears,
-        },
-      });
-    } else {
-      props.setSearchResults({
-        ...props.searchResults,
-        time: {
-          ...props.searchResults.time,
-          years: [...currentYears, year],
-        },
-      });
-    }
-  }
-
   function handleClickOnIntensity(variable: string, order: string) {
     const currentVariable = props.searchResults.intensity.variable;
     const currentOrder = props.searchResults.intensity.order;
@@ -116,23 +79,7 @@ export default function Q4SearchMatrix(props: {
           </div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] ">
-            <ul className="columns-2">
-              {[2019, 2020, 2021, 2022].map((year) => {
-                return (
-                  <li key={year}>
-                    <span
-                      className={`font-semibold hover:font-bold hover:cursor-pointer ${
-                        props.searchResults.time.years.includes(year) &&
-                        "text-tero-100"
-                      }`}
-                      onClick={() => handleClickOnYear(year)}
-                    >
-                      {year}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            2023
           </div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>

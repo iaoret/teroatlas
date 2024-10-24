@@ -1,7 +1,6 @@
 import { ChartContainer } from "@/components/ui/chart";
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   Tooltip,
