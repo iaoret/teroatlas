@@ -313,12 +313,14 @@ export default function EconomicData() {
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           {dashboardKey === "q1" && (
             <Q1Map
+              key={`q1-map`}
               dashboardData={q1DashboardData}
               searchResults={q1SearchResults}
             />
           )}
           {dashboardKey === "q2" && (
             <Q2Map
+              key={`q2-map`}
               dashboardData={q2DashboardData}
               searchResults={q2SearchResults}
             />
