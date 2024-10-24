@@ -33,6 +33,18 @@ export interface Q3SearchResults {
   breadth: null;
 }
 
+export interface Q4SearchResults {
+  length: null;
+  time: {
+    years: number[];
+  };
+  intensity: {
+    variable: string;
+    order: string;
+  };
+  breadth: null;
+}
+
 export interface Q1DashboardData {
   boundingBox: number[];
   choroplethicData: {
@@ -70,6 +82,15 @@ export interface Q3DashboardData {
   chartInfo: string;
 }
 
+export interface Q4DashboardData {
+  boundingBox: number[];
+  choroplethicData: {
+    minPerc: number;
+    maxPerc: number;
+  };
+  q4Data: Q4Data[];
+}
+
 export interface Q1Totals {
   total_emp: number | null;
   total_est: number | null;
@@ -90,6 +111,16 @@ export interface Q3Totals {
   count_zip: number | null;
   total_housing: number | null;
   total_ratio: number | null;
+}
+
+export interface Q4Data {
+  uid: number;
+  borough: string;
+  block: number;
+  avg_estimated_gross_income: number;
+  avg_full_market_value: number;
+  perc_gross_income_as_full_market_value: number;
+  number_of_obs: number;
 }
 
 export interface Q2Top10BySubUnit {

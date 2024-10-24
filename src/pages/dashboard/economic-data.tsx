@@ -35,6 +35,9 @@ import {
   Q3Totals,
   Q3DashboardData,
   Q3Data,
+  Q4SearchResults,
+  Q4Data,
+  Q4DashboardData,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q2Map from "@/components/q2-map";
@@ -51,10 +54,14 @@ import Q2Dashboard from "@/components/q2-dashboard";
 import Q3Map from "@/components/q3-map";
 import Q3Dashboard from "@/components/q3-dashboard";
 import { DashboardTable } from "@/components/dashboard-table";
+import Q4SearchMatrix from "@/components/q4-search-matrix";
+import Q4Dashboard from "@/components/q4-dashboard";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState("dc jobs per housing stats ward 1");
+  const [search, setSearch] = useState(
+    "nyc lowest gross income per full market value borough block"
+  );
 
   const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
@@ -86,6 +93,15 @@ export default function EconomicData() {
     },
     breadth: null,
   });
+  const [q4SearchResults, setQ4SearchResults] = useState<Q4SearchResults>({
+    length: null,
+    time: { years: [2019, 2020, 2021, 2022] },
+    intensity: {
+      variable: "perc_gross_income_as_full_market_value",
+      order: "desc",
+    },
+    breadth: null,
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -98,6 +114,9 @@ export default function EconomicData() {
   >();
   const [q3DashboardData, setQ3DashboardData] = useState<
     Q3DashboardData | undefined
+  >();
+  const [q4DashboardData, setQ4DashboardData] = useState<
+    Q4DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -152,6 +171,13 @@ export default function EconomicData() {
       search.includes("ward")
     )
       return "q3";
+
+    if (
+      search.includes("nyc") &&
+      search.includes("lowest gross income per full market value") &&
+      search.includes("borough block")
+    )
+      return "q4";
 
     return undefined;
   }
@@ -346,6 +372,56 @@ export default function EconomicData() {
     setLoading(false);
   }, [q3SearchResults]);
 
+  const buildDashboardQ4 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q4Data: Q4Data[] = await fetch(
+          environment.urlRest +
+            `/q4_nyc_boro_block_economic_data?order=perc_gross_income_as_full_market_value.asc.nullslast&limit=1`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest + `/rpc/get_q4_extent?block_uid=${q4Data[0].uid}`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest + `/rpc/get_min_max_boro_block_perc_in_nyc`
+        ).then(async (res) => res.json());
+
+        setQ4DashboardData({
+          q4Data: q4Data,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minPerc:
+              choropleticData[0].min_perc_gross_income_as_full_market_value,
+            maxPerc:
+              choropleticData[0].max_perc_gross_income_as_full_market_value,
+          },
+        });
+
+        return {
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, []);
+
   const buildDashboard = useCallback(
     async (key: string | undefined) => {
       if (!key) return;
@@ -358,8 +434,11 @@ export default function EconomicData() {
       if (key === "q3") {
         await buildDashboardQ3();
       }
+      if (key === "q4") {
+        await buildDashboardQ4();
+      }
     },
-    [buildDashboardQ1, buildDashboardQ2, buildDashboardQ3]
+    [buildDashboardQ1, buildDashboardQ2, buildDashboardQ3, buildDashboardQ4]
   );
 
   useEffect(() => {
@@ -501,6 +580,14 @@ export default function EconomicData() {
                       searchResults={q3SearchResults}
                     />
                   )}
+                  {dashboardKey === "q4" && (
+                    <Q4SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      searchString={search || ""}
+                      setSearchResults={setQ4SearchResults}
+                      searchResults={q4SearchResults}
+                    />
+                  )}
                   {!dashboardKey && !loading && <>No results found</>}
                 </div>
               </DialogContent>
@@ -536,6 +623,13 @@ export default function EconomicData() {
               <Q3Dashboard
                 dashboardData={q3DashboardData}
                 searchResults={q3SearchResults}
+              />
+            )}
+
+            {showDashboard && q4DashboardData && dashboardKey === `q4` && (
+              <Q4Dashboard
+                dashboardData={q4DashboardData}
+                searchResults={q4SearchResults}
               />
             )}
 
