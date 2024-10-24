@@ -38,6 +38,7 @@ import {
   Q4SearchResults,
   Q4Data,
   Q4DashboardData,
+  Q4HistoricalData,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q2Map from "@/components/q2-map";
@@ -56,6 +57,7 @@ import Q3Dashboard from "@/components/q3-dashboard";
 import { DashboardTable } from "@/components/dashboard-table";
 import Q4SearchMatrix from "@/components/q4-search-matrix";
 import Q4Dashboard from "@/components/q4-dashboard";
+import DashboardLineChart from "@/components/dashboard-line-chart";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -380,6 +382,11 @@ export default function EconomicData() {
             `/q4_nyc_boro_block_economic_data?order=perc_gross_income_as_full_market_value.asc.nullslast&limit=1`
         ).then((res) => res.json());
 
+        const q4HistoricalData: Q4HistoricalData[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_perc_gross_income_as_full_market_value_over_the_years?borough_id=${q4Data[0].borough}&block_id=${q4Data[0].block}`
+        ).then((res) => res.json());
+
         const boundingBox: number[] = await fetch(
           environment.urlRest + `/rpc/get_q4_extent?block_uid=${q4Data[0].uid}`
         ).then(async (res) => parseBox(await res.text()));
@@ -390,6 +397,7 @@ export default function EconomicData() {
 
         setQ4DashboardData({
           q4Data: q4Data,
+          q4HistoricalData: q4HistoricalData,
           boundingBox: boundingBox,
           choroplethicData: {
             minPerc:
@@ -683,6 +691,16 @@ export default function EconomicData() {
               <DashboardTable
                 data={q3DashboardData.q3Data}
                 tableInfo="ZIP Codes within target geography"
+              />
+            )}
+
+            {showDashboard && q4DashboardData && dashboardKey === `q4` && (
+              <DashboardLineChart
+                chartInfo={`Evolution of the percentual of gross income as full market value over the years
+              `}
+                data={q4DashboardData.q4HistoricalData}
+                dataKeyXAxis="year"
+                dataKeyYAxis="perc_gross_income_as_full_market_value"
               />
             )}
 

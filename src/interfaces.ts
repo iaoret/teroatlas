@@ -89,6 +89,7 @@ export interface Q4DashboardData {
     maxPerc: number;
   };
   q4Data: Q4Data[];
+  q4HistoricalData: Q4HistoricalData[];
 }
 
 export interface Q1Totals {
@@ -167,4 +168,13 @@ export interface Q3Data {
   uid: number;
   zip: number;
   emp: number;
+}
+
+export interface Q4HistoricalData {
+  borough: string;
+  block: number;
+  year: number;
+  avg_estimated_gross_income: number;
+  avg_full_market_value: number;
+  perc_gross_income_as_full_market_value: number;
 }
