@@ -22,6 +22,17 @@ export interface Q2SearchResults {
   };
 }
 
+export interface Q3SearchResults {
+  place: string | null;
+  length: null;
+  time: null;
+  intensity: {
+    variable: string;
+    order: string;
+  };
+  breadth: null;
+}
+
 export interface Q1DashboardData {
   boundingBox: number[];
   choroplethicData: {
@@ -48,6 +59,17 @@ export interface Q2DashboardData {
   chartInfo: string;
 }
 
+export interface Q3DashboardData {
+  boundingBox: number[];
+  choroplethicData: {
+    minRatio: number;
+    maxRatio: number;
+  };
+  q3Data: Q3Data[];
+  q3Totals: Q3Totals[];
+  chartInfo: string;
+}
+
 export interface Q1Totals {
   total_emp: number | null;
   total_est: number | null;
@@ -61,6 +83,13 @@ export interface Q1Top10BySubUnit {
 export interface Q2Totals {
   total_emp: number | null;
   total_est: number | null;
+}
+
+export interface Q3Totals {
+  total_emp: number | null;
+  count_zip: number | null;
+  total_housing: number | null;
+  total_ratio: number | null;
 }
 
 export interface Q2Top10BySubUnit {
@@ -101,4 +130,10 @@ export interface Q2Data {
     };
     coordinates: number[][][];
   };
+}
+
+export interface Q3Data {
+  uid: number;
+  zip: number;
+  emp: number;
 }

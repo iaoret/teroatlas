@@ -31,6 +31,10 @@ import {
   Q2Top10BySubUnit,
   Q2DashboardData,
   Q2Data,
+  Q3SearchResults,
+  Q3Totals,
+  Q3DashboardData,
+  Q3Data,
 } from "@/interfaces";
 import Q1Map from "@/components/q1-map";
 import Q2Map from "@/components/q2-map";
@@ -42,13 +46,15 @@ import DashboardStart from "@/components/dashboard-start";
 import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-display";
 import DropdownExportData from "@/components/dropdown-export-data";
 import Q2SearchMatrix from "@/components/q2-search-matrix";
+import Q3SearchMatrix from "@/components/q3-search-matrix";
 import Q2Dashboard from "@/components/q2-dashboard";
+import Q3Map from "@/components/q3-map";
+import Q3Dashboard from "@/components/q3-dashboard";
+import { DashboardTable } from "@/components/dashboard-table";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState(
-    "new York manufacturing economic data 1st congressional district"
-  );
+  const [search, setSearch] = useState("dc jobs per housing stats ward 1");
 
   const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
@@ -70,6 +76,16 @@ export default function EconomicData() {
       naics: "31---",
     },
   });
+  const [q3SearchResults, setQ3SearchResults] = useState<Q3SearchResults>({
+    place: null,
+    length: null,
+    time: null,
+    intensity: {
+      variable: "ratio",
+      order: "desc",
+    },
+    breadth: null,
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -79,6 +95,9 @@ export default function EconomicData() {
   >();
   const [q2DashboardData, setQ2DashboardData] = useState<
     Q2DashboardData | undefined
+  >();
+  const [q3DashboardData, setQ3DashboardData] = useState<
+    Q3DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -126,6 +145,13 @@ export default function EconomicData() {
       search.includes("1st congressional district")
     )
       return "q2";
+
+    if (
+      search.includes("dc") &&
+      search.includes("jobs per housing stats") &&
+      search.includes("ward")
+    )
+      return "q3";
 
     return undefined;
   }
@@ -263,6 +289,63 @@ export default function EconomicData() {
     setLoading(false);
   }, [q2SearchResults]);
 
+  const buildDashboardQ3 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q3Totals: Q3Totals[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_total_emp_and_housing_in_dc_by_ward?ward_identifier=${q3SearchResults.place}`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_q3_extent?ward_identifier=${q3SearchResults.place}`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest +
+            `/rpc/get_min_max_emp_housing_ratio_on_zip_code_by_ward?ward_identifier=${q3SearchResults.place}`
+        ).then(async (res) => res.json());
+
+        const q3Data: Q3Data[] = await fetch(
+          environment.urlRest +
+            `/q3_dc_zip_codes_est_jobs_wards?ward_name=eq.${q3SearchResults.place}&select=zip,name,emp`
+        ).then(async (res) => res.json());
+
+        setQ3DashboardData({
+          q3Totals: q3Totals,
+          q3Data: q3Data,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minRatio: choropleticData[0].min_ratio,
+            maxRatio: choropleticData[0].max_ratio,
+          },
+          chartInfo: "",
+        });
+
+        return {
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, [q3SearchResults]);
+
   const buildDashboard = useCallback(
     async (key: string | undefined) => {
       if (!key) return;
@@ -272,8 +355,11 @@ export default function EconomicData() {
       if (key === "q2") {
         await buildDashboardQ2();
       }
+      if (key === "q3") {
+        await buildDashboardQ3();
+      }
     },
-    [buildDashboardQ1, buildDashboardQ2]
+    [buildDashboardQ1, buildDashboardQ2, buildDashboardQ3]
   );
 
   useEffect(() => {
@@ -323,6 +409,13 @@ export default function EconomicData() {
               key={`q2-map`}
               dashboardData={q2DashboardData}
               searchResults={q2SearchResults}
+            />
+          )}
+          {dashboardKey === "q3" && (
+            <Q3Map
+              key={`q3-map`}
+              dashboardData={q3DashboardData}
+              searchResults={q3SearchResults}
             />
           )}
           <RControl.RCustom
@@ -400,6 +493,14 @@ export default function EconomicData() {
                       searchResults={q2SearchResults}
                     />
                   )}
+                  {dashboardKey === "q3" && (
+                    <Q3SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      searchString={search || ""}
+                      setSearchResults={setQ3SearchResults}
+                      searchResults={q3SearchResults}
+                    />
+                  )}
                   {!dashboardKey && !loading && <>No results found</>}
                 </div>
               </DialogContent>
@@ -428,6 +529,13 @@ export default function EconomicData() {
               <Q2Dashboard
                 dashboardData={q2DashboardData}
                 searchResults={q2SearchResults}
+              />
+            )}
+
+            {showDashboard && q3DashboardData && dashboardKey === `q3` && (
+              <Q3Dashboard
+                dashboardData={q3DashboardData}
+                searchResults={q3SearchResults}
               />
             )}
 
@@ -474,6 +582,13 @@ export default function EconomicData() {
                 data={q2DashboardData.q2Top10BySubUnit}
                 dataKeyXAxis="zip"
                 dataKeyBar="total"
+              />
+            )}
+
+            {showDashboard && q3DashboardData && dashboardKey === `q3` && (
+              <DashboardTable
+                data={q3DashboardData.q3Data}
+                tableInfo="ZIP Codes within target geography"
               />
             )}
 
