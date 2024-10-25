@@ -10,7 +10,11 @@ export default function Q2Dashboard(props: {
       <h2 className="text-2xl font-semibold text-center mt-4 mb-4">
         New York State`s 1st Congressional District
       </h2>
-
+      {props.searchResults.breadth.naics === `31---` && (
+        <h2 className="text-xl font-semibold text-center mb-4 text-gray-500">
+          Industry: Manufacturing
+        </h2>
+      )}
       <Separator className="mt-4 mb-4" />
       <div className="text-center">
         <h2 className="text-8xl font-bold text-tero-100">
@@ -28,9 +32,10 @@ export default function Q2Dashboard(props: {
         </h2>
         <h2 className="text-xl font-semibold mt-1">Establishments</h2>
       </div>
-      <h2 className="text-xs italic text-slate-600 text-center mt-4">
+      <h2 className="text-xs italic text-slate-600 text-center mt-4 w-[80%]">
         Calculated using data from ZIP Codes within target geography in the year
-        of 2022 for the NAICS code {props.searchResults.breadth.naics}
+        of 2022 for the NAICS code {props.searchResults.breadth.naics}{" "}
+        {props.searchResults.breadth.naics === `31---` ? "(Manufacturing)" : ""}
       </h2>
     </div>
   );

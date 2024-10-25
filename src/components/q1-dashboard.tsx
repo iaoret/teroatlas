@@ -33,6 +33,7 @@ export default function Q1Dashboard(props: {
         {props.searchResults.time.years.length === 1 ? "year of" : "years"}{" "}
         {props.searchResults.time.years.join(", ")}
       </h2>
+
     </div>
   );
 }

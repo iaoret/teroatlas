@@ -117,7 +117,7 @@ export default function Q3SearchMatrix(props: {
             Topic
           </div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer">
-            jobs per housing stats
+            jobs per housing unit stats
           </div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer">
             <ul>
@@ -125,7 +125,7 @@ export default function Q3SearchMatrix(props: {
                 <span className="font-semibold">Employees</span>
               </li>
               <li>
-                <span className="font-semibold">Housing</span>
+                <span className="font-semibold">Housing unit</span>
               </li>
             </ul>
           </div>

@@ -204,7 +204,11 @@ export default function Q2SearchMatrix(props: {
             onClick={handleClickOnBreadth}
           >
             {!isEditingNaicsCode &&
-              `NAICS: ${props.searchResults.breadth.naics}`}
+              `NAICS: ${props.searchResults.breadth.naics} ${
+                props.searchResults.breadth.naics === `31---`
+                  ? "(Manufacturing)"
+                  : ""
+              }`}
 
             {isEditingNaicsCode && (
               <Input
