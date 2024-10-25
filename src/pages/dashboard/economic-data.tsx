@@ -1,25 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import "ol/ol.css";
-import { RControl, RLayerTile, RLayerVectorTile, RMap } from "rlayers";
+import { RControl, RLayerTile, RMap } from "rlayers";
 //@ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'ROSM'.
 import { RView } from "rlayers/RMap";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { MVT } from "ol/format";
-import { Fill, Stroke, Style } from "ol/style";
 import environment from "@/environments";
 import { Button } from "@/components/ui/button";
 import { ArrowBack } from "@/components/icons/arrow-back";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, SearchIcon, XIcon } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChartContainer } from "@/components/ui/chart";
-import { Bar, BarChart, Legend, Tooltip, XAxis, YAxis } from "recharts";
+import { SearchIcon, XIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,19 +18,55 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import SearchMatrix from "@/components/search-matrix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseBox } from "@/lib/parseBox";
 import { Separator } from "@/components/ui/separator";
-import getChoroplethColor from "@/lib/getChoroplethColor";
-import { FeatureLike } from "ol/Feature";
-import { Q1Top10BySubUnit, Q1Totals, SearchResults } from "@/interfaces";
+import {
+  Q1DashboardData,
+  Q1Top10BySubUnit,
+  Q1Totals,
+  Q1SearchResults,
+  Q2SearchResults,
+  Q2Totals,
+  Q2Top10BySubUnit,
+  Q2DashboardData,
+  Q2Data,
+  Q3SearchResults,
+  Q3Totals,
+  Q3DashboardData,
+  Q3Data,
+  Q4SearchResults,
+  Q4Data,
+  Q4DashboardData,
+  Q4HistoricalData,
+} from "@/interfaces";
+import Q1Map from "@/components/q1-map";
+import Q2Map from "@/components/q2-map";
+import Q1Dashboard from "@/components/q1-dashboard";
+import DashboardBarChart from "@/components/dashboard-bar-chart";
+import Q1SearchMatrix from "@/components/q1-search-matrix";
+import DashboardSkeleton from "@/components/dashboard-skeleton";
+import DashboardStart from "@/components/dashboard-start";
+import DropdownCustomizeDataDisplay from "@/components/dropdown-customize-data-display";
+import DropdownExportData from "@/components/dropdown-export-data";
+import Q2SearchMatrix from "@/components/q2-search-matrix";
+import Q3SearchMatrix from "@/components/q3-search-matrix";
+import Q2Dashboard from "@/components/q2-dashboard";
+import Q3Map from "@/components/q3-map";
+import Q3Dashboard from "@/components/q3-dashboard";
+import { DashboardTable } from "@/components/dashboard-table";
+import Q4SearchMatrix from "@/components/q4-search-matrix";
+import Q4Map from "@/components/q4-map";
+import Q4Dashboard from "@/components/q4-dashboard";
+import DashboardLineChart from "@/components/dashboard-line-chart";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    "nyc lowest gross income per full market value borough block"
+  );
 
-  const [searchResults, setSearchResults] = useState<SearchResults>({
+  const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
     time: { years: [2019, 2020, 2021, 2022] },
     intensity: {
@@ -50,23 +75,51 @@ export default function EconomicData() {
     },
     breadth: null,
   });
+  const [q2SearchResults, setQ2SearchResults] = useState<Q2SearchResults>({
+    length: null,
+    time: null,
+    intensity: {
+      variable: "aprox_emp",
+      order: "desc",
+    },
+    breadth: {
+      naics: "31---",
+    },
+  });
+  const [q3SearchResults, setQ3SearchResults] = useState<Q3SearchResults>({
+    place: null,
+    length: null,
+    time: null,
+    intensity: {
+      variable: "ratio",
+      order: "desc",
+    },
+    breadth: null,
+  });
+  const [q4SearchResults, setQ4SearchResults] = useState<Q4SearchResults>({
+    length: null,
+    time: { years: [2019, 2020, 2021, 2022] },
+    intensity: {
+      variable: "perc_gross_income_as_full_market_value",
+      order: "desc",
+    },
+    breadth: null,
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const [dashboardData, setDashboardData] = useState<
-    | {
-        boundingBox: number[];
-        choroplethicData: {
-          maxEmp: number;
-          maxEst: number;
-          minEmp: number;
-          minEst: number;
-        };
-        q1Totals: Q1Totals[];
-        q1Top10BySubUnit: Q1Top10BySubUnit[];
-      }
-    | undefined
+  const [q1DashboardData, setQ1DashboardData] = useState<
+    Q1DashboardData | undefined
+  >();
+  const [q2DashboardData, setQ2DashboardData] = useState<
+    Q2DashboardData | undefined
+  >();
+  const [q3DashboardData, setQ3DashboardData] = useState<
+    Q3DashboardData | undefined
+  >();
+  const [q4DashboardData, setQ4DashboardData] = useState<
+    Q4DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -90,30 +143,67 @@ export default function EconomicData() {
     setSearch("");
     setShowDashboard(false);
     setIsSearching(false);
-    setDashboardData(undefined);
+    setQ1DashboardData(undefined);
+    setQ2DashboardData(undefined);
   }
 
   function handleGoBack() {
     navigate(-1);
   }
 
-  const buildDashboard = useCallback(async () => {
+  function whatDashboardToRender(search: string) {
+    search = search.toLowerCase();
+
+    if (
+      search.includes("dc") &&
+      search.includes("congressional district") &&
+      search.includes("economic data")
+    )
+      return "q1";
+
+    if (
+      search.includes("new york") &&
+      search.includes("manufacturing economic data") &&
+      search.includes("1st congressional district")
+    )
+      return "q2";
+
+    if (
+      search.includes("dc") &&
+      search.includes("jobs per housing stats") &&
+      search.includes("ward")
+    )
+      return "q3";
+
+    if (
+      search.includes("nyc") &&
+      search.includes("lowest gross income per full market value") &&
+      search.includes("borough block")
+    )
+      return "q4";
+
+    return undefined;
+  }
+
+  const dashboardKey = whatDashboardToRender(search);
+
+  const buildDashboardQ1 = useCallback(async () => {
     async function fetchData() {
       try {
         const q1Totals: Q1Totals[] = await fetch(
           environment.urlRest +
-            `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${searchResults.time.years.join(
+            `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${q1SearchResults.time.years.join(
               ","
             )}}`
         ).then((res) => res.json());
 
         const q1Top10BySubUnit: Q1Top10BySubUnit[] = await fetch(
           environment.urlRest +
-            `/rpc/get_top_10_zip_codes?district_id=1&years_set={${searchResults.time.years.join(
+            `/rpc/get_top_10_zip_codes?district_id=1&years_set={${q1SearchResults.time.years.join(
               ","
-            )}}&variable=${searchResults.intensity.variable}&order_direction=${
-              searchResults.intensity.order
-            }`
+            )}}&variable=${
+              q1SearchResults.intensity.variable
+            }&order_direction=${q1SearchResults.intensity.order}`
         ).then((res) => res.json());
 
         const boundingBox: number[] = await fetch(
@@ -124,7 +214,7 @@ export default function EconomicData() {
           environment.urlRest + `/rpc/get_min_max_emp_est`
         ).then(async (res) => res.json());
 
-        setDashboardData({
+        setQ1DashboardData({
           q1Totals: q1Totals,
           q1Top10BySubUnit: q1Top10BySubUnit,
           boundingBox: boundingBox,
@@ -134,6 +224,7 @@ export default function EconomicData() {
             minEst: choropleticData[0].min_est,
             maxEst: choropleticData[0].max_est,
           },
+          chartInfo: "",
         });
 
         return {
@@ -159,11 +250,205 @@ export default function EconomicData() {
       });
     }
     setLoading(false);
-  }, [
-    searchResults.intensity.order,
-    searchResults.intensity.variable,
-    searchResults.time.years,
-  ]);
+  }, [q1SearchResults]);
+
+  const buildDashboardQ2 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q2Totals: Q2Totals[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_total_emp_est_by_district_and_naics_in_nys?district_id=1&naics_code=${q2SearchResults.breadth.naics}`
+        ).then((res) => res.json());
+
+        const q2Top10BySubUnit: Q2Top10BySubUnit[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_top_10_zip_codes_nys_by_district_id_naics_code?district_id=1&naics_code=${q2SearchResults.breadth.naics}&variable=${q2SearchResults.intensity.variable}&order_direction=${q2SearchResults.intensity.order}`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest + `/rpc/get_q2_extent`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest +
+            `/rpc/get_min_max_emp_est_by_district_and_naics_code_in_nys?district_id=1&naics_code=${q2SearchResults.breadth.naics}`
+        ).then(async (res) => res.json());
+
+        const q2Data: Q2Data[] = await fetch(
+          environment.urlRest +
+            `/q2_zip_code_econ_data_with_geojson?id_q2_nys_congressional_districts=eq.1&naics=ilike.*${q2SearchResults.breadth.naics}*&limit=100`
+        ).then(async (res) => res.json());
+
+        setQ2DashboardData({
+          q2Totals: q2Totals,
+          q2Top10BySubUnit: q2Top10BySubUnit,
+          q2Data: q2Data,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minEmp: choropleticData[0].min_emp,
+            maxEmp: choropleticData[0].max_emp,
+            minEst: choropleticData[0].min_est,
+            maxEst: choropleticData[0].max_est,
+          },
+          chartInfo: "",
+        });
+
+        return {
+          q1Totals: q2Totals,
+          q1Top10BySubUnit: q2Top10BySubUnit,
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, [q2SearchResults]);
+
+  const buildDashboardQ3 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q3Totals: Q3Totals[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_total_emp_and_housing_in_dc_by_ward?ward_identifier=${q3SearchResults.place}`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_q3_extent?ward_identifier=${q3SearchResults.place}`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest +
+            `/rpc/get_min_max_emp_housing_ratio_on_zip_code_by_ward?ward_identifier=${q3SearchResults.place}`
+        ).then(async (res) => res.json());
+
+        const q3Data: Q3Data[] = await fetch(
+          environment.urlRest +
+            `/q3_dc_zip_codes_est_jobs_wards?ward_name=eq.${q3SearchResults.place}&select=zip,name,emp`
+        ).then(async (res) => res.json());
+
+        setQ3DashboardData({
+          q3Totals: q3Totals,
+          q3Data: q3Data,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minRatio: choropleticData[0].min_ratio,
+            maxRatio: choropleticData[0].max_ratio,
+          },
+          chartInfo: "",
+        });
+
+        return {
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, [q3SearchResults]);
+
+  const buildDashboardQ4 = useCallback(async () => {
+    async function fetchData() {
+      try {
+        const q4Data: Q4Data[] = await fetch(
+          environment.urlRest +
+            `/q4_nyc_boro_block_economic_data?order=perc_gross_income_as_full_market_value.asc.nullslast&limit=1`
+        ).then((res) => res.json());
+
+        const q4HistoricalData: Q4HistoricalData[] = await fetch(
+          environment.urlRest +
+            `/rpc/get_perc_gross_income_as_full_market_value_over_the_years?borough_id=${q4Data[0].borough}&block_id=${q4Data[0].block}`
+        ).then((res) => res.json());
+
+        const boundingBox: number[] = await fetch(
+          environment.urlRest + `/rpc/get_q4_extent?block_uid=${q4Data[0].uid}`
+        ).then(async (res) => parseBox(await res.text()));
+
+        const choropleticData = await fetch(
+          environment.urlRest + `/rpc/get_min_max_boro_block_perc_in_nyc`
+        ).then(async (res) => res.json());
+
+        setQ4DashboardData({
+          q4Data: q4Data,
+          q4HistoricalData: q4HistoricalData,
+          boundingBox: boundingBox,
+          choroplethicData: {
+            minPerc:
+              choropleticData[0].min_perc_gross_income_as_full_market_value,
+            maxPerc:
+              choropleticData[0].max_perc_gross_income_as_full_market_value,
+          },
+        });
+
+        return {
+          boundingBox: boundingBox,
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setLoading(true);
+    setIsSearching(false);
+    setShowDashboard(true);
+    const data = await fetchData();
+    if (mapRef.current && data?.boundingBox) {
+      mapRef.current.ol.getView().fit(data?.boundingBox, {
+        size: mapRef.current.ol.getSize(),
+        duration: 1000,
+        padding: [50, 50, 50, 50],
+        callback: () => console.log("just fitted"),
+      });
+    }
+    setLoading(false);
+  }, []);
+
+  const buildDashboard = useCallback(
+    async (key: string | undefined) => {
+      if (!key) return;
+      if (key === "q1") {
+        await buildDashboardQ1();
+      }
+      if (key === "q2") {
+        await buildDashboardQ2();
+      }
+      if (key === "q3") {
+        await buildDashboardQ3();
+      }
+      if (key === "q4") {
+        await buildDashboardQ4();
+      }
+    },
+    [buildDashboardQ1, buildDashboardQ2, buildDashboardQ3, buildDashboardQ4]
+  );
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -177,19 +462,13 @@ export default function EconomicData() {
         clearSearch();
       }
 
-      if (
-        e.key === `Enter` &&
-        search.includes("dc") &&
-        search.includes("congressional district") &&
-        search.includes("economic data") &&
-        isSearching
-      ) {
-        buildDashboard();
+      if (e.key === `Enter` && isSearching) {
+        buildDashboard(dashboardKey);
       }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [buildDashboard, isSearching, search]);
+  }, [buildDashboard, dashboardKey, isSearching, search]);
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -206,70 +485,34 @@ export default function EconomicData() {
           noDefaultControls
         >
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-          <RLayerVectorTile
-            url={`${
-              environment.urlTiles
-            }/public.q1_tile_function/{z}/{x}/{y}.pbf?years_set={${searchResults.time.years.join(
-              ","
-            )}}`}
-            format={new MVT()}
-            style={useCallback(
-              (feature: FeatureLike) => {
-                if (!dashboardData) return;
-                const value = feature.get(searchResults.intensity.variable);
-
-                return new Style({
-                  stroke: new Stroke({
-                    color: "#00447C",
-                    width: 1,
-                  }),
-                  fill: new Fill({
-                    color: getChoroplethColor(
-                      value,
-                      dashboardData?.choroplethicData[
-                        searchResults.intensity.variable === "emp"
-                          ? "maxEmp"
-                          : "maxEst"
-                      ],
-                      dashboardData?.choroplethicData[
-                        searchResults.intensity.variable === "emp"
-                          ? "minEmp"
-                          : "minEst"
-                      ],
-                      [255, 255, 255],
-                      [12, 63, 150],
-                      0.3
-                    ),
-                  }),
-                });
-              },
-              [dashboardData, searchResults]
-            )}
-            // onPointerMove={(e) => {
-            //   console.log(e.target.getProperties());
-            // }}
-            onClick={(e) => {
-              console.log(e.target.getProperties());
-            }}
-          />
-          <RLayerVectorTile
-            // TODO: this logic here can be used for the MVP, need to make the selectedGeometry more dynamic
-            style={useCallback(
-              () =>
-                new Style({
-                  stroke: new Stroke({
-                    color: dashboardData ? "#ff0000" : "#00000000",
-                    width: 5,
-                  }),
-                  fill: new Fill({
-                    color: "#00000000",
-                  }),
-                }),
-              [dashboardData]
-            )}
-            url={`${environment.urlTiles}/public.q1_dc_congressional_district/{z}/{x}/{y}.pbf`}
-            format={new MVT()}
-          />
+          {dashboardKey === "q1" && (
+            <Q1Map
+              key={`q1-map`}
+              dashboardData={q1DashboardData}
+              searchResults={q1SearchResults}
+            />
+          )}
+          {dashboardKey === "q2" && (
+            <Q2Map
+              key={`q2-map`}
+              dashboardData={q2DashboardData}
+              searchResults={q2SearchResults}
+            />
+          )}
+          {dashboardKey === "q3" && (
+            <Q3Map
+              key={`q3-map`}
+              dashboardData={q3DashboardData}
+              searchResults={q3SearchResults}
+            />
+          )}
+          {dashboardKey === "q4" && (
+            <Q4Map
+              key={`q4-map`}
+              dashboardData={q4DashboardData}
+              searchResults={q4SearchResults}
+            />
+          )}
           <RControl.RCustom
             className={`top-[15px] left-[15px] min-w-full flex flex-row bg-transparent gap-[15px] `}
           >
@@ -328,34 +571,45 @@ export default function EconomicData() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center min-w-[50vw]">
-                  <SearchMatrix
-                    loading={loading}
-                    search={search}
-                    buildDashboard={buildDashboard}
-                    setSearchResults={setSearchResults}
-                    searchResults={searchResults}
-                  />
+                  {loading && !dashboardKey && (
+                    <Skeleton className="min-w-[100%] w-full h-[500px]" />
+                  )}
+                  {dashboardKey === "q1" && (
+                    <Q1SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      setSearchResults={setQ1SearchResults}
+                      searchResults={q1SearchResults}
+                    />
+                  )}
+                  {dashboardKey === "q2" && (
+                    <Q2SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      setSearchResults={setQ2SearchResults}
+                      searchResults={q2SearchResults}
+                    />
+                  )}
+                  {dashboardKey === "q3" && (
+                    <Q3SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      searchString={search || ""}
+                      setSearchResults={setQ3SearchResults}
+                      searchResults={q3SearchResults}
+                    />
+                  )}
+                  {dashboardKey === "q4" && (
+                    <Q4SearchMatrix
+                      buildDashboard={() => buildDashboard(dashboardKey)}
+                      searchString={search || ""}
+                      setSearchResults={setQ4SearchResults}
+                      searchResults={q4SearchResults}
+                    />
+                  )}
+                  {!dashboardKey && !loading && <>No results found</>}
                 </div>
               </DialogContent>
             </Dialog>
           </RControl.RCustom>
           <RControl.RCustom className="right-0 w-4 bg-primary-foreground h-full rounded-r-none rounded-l-lg shadow-lg shadow-black flex justify-center items-center"></RControl.RCustom>
-          {/* <RControl.RCustom
-            className={`${
-              showDashboard ? "opacity-100" : "opacity-0"
-            } bottom-[15px] left-[25%] w-1/2 z-[1000] shadow-sm shadow-gray transition-all duration-100`}
-          >
-            <Tabs defaultValue="account" className="min-w-full">
-              <TabsList className="grid w-full grid-cols-2 gap-2 p-2">
-                <TabsTrigger value="employees" className="w-full">
-                  Employees
-                </TabsTrigger>
-                <TabsTrigger value="establishments" className="w-full">
-                  Establishments
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </RControl.RCustom> */}
         </RMap>
       </div>
       <div
@@ -363,155 +617,104 @@ export default function EconomicData() {
           showDashboard ? "w-[50vw] min-w-[50vw]" : "w-[200px] min-w-[200px]"
         } transition-all duration-200 flex flex-col justify-center z-20  bg-primary-foreground`}
       >
-        {!showDashboard && (
-          <div className="p-4 flex flex-col ">
-            <h2 className="text-8xl font-bold  text-tero-100">24</h2>
-            <h2 className="text-1xl  font-semibold text-tero-100">
-              Dashboards Available
-            </h2>
-            <p className="">
-              Type anything on the searchbar to navigate between dashboards
-            </p>
-          </div>
-        )}
-        {showDashboard && loading && (
-          <div className="flex flex-col justify-center items-center gap-4 max-h-screen overflow-y-auto">
-            <Skeleton className="w-2/3 h-[50px]" />
-            <Separator />
-            <Skeleton className="w-full h-[100px]" />
-            <Skeleton className="w-1/2 h-[30px]" />
-            <Skeleton className="w-full h-[100px]" />
-            <Skeleton className="w-1/2 h-[30px]" />
-            <Skeleton className="w-full h-[30px]" />
-            <Separator />
-            <Skeleton className="w-1/3 h-[60px]" />
-            <Skeleton className="w-full h-[400px]" />
-            <Separator />
-            <Skeleton className="h-[50px] w-1/2" />
-          </div>
-        )}
+        {!showDashboard && <DashboardStart />}
+        {showDashboard && loading && <DashboardSkeleton />}
         {showDashboard && !loading && (
           <div className="w-full flex flex-col justify-between items-center pt-4 pb-4 max-h-[100vh] h-[100vh] overflow-y-auto">
-            {showDashboard && dashboardData?.q1Totals && (
-              <div className="flex flex-col justify-center items-center">
-                <h2 className="text-2xl font-semibold text-center mt-4 mb-4">
-                  District of Columbia (Congressional District)
-                </h2>
+            {showDashboard && q1DashboardData && dashboardKey === `q1` && (
+              <Q1Dashboard
+                dashboardData={q1DashboardData}
+                searchResults={q1SearchResults}
+              />
+            )}
 
-                <Separator className="mt-4 mb-4" />
-                <div className="text-center">
-                  <h2 className="text-8xl font-bold text-tero-100">
-                    {dashboardData.q1Totals[0].total_emp.toLocaleString(
-                      "en-US"
-                    )}
-                  </h2>
-                  <h2 className="text-xl font-semibold text-tero-100 mt-1">
-                    Employees
-                  </h2>
-                </div>
-                <div className="text-center">
-                  <h2 className="text-8xl font-bold">
-                    {dashboardData.q1Totals[0].total_est.toLocaleString(
-                      "en-US"
-                    )}
-                  </h2>
-                  <h2 className="text-xl font-semibold mt-1">Establishments</h2>
-                </div>
-                <h2 className="text-xs italic text-slate-600 text-center mt-4">
-                  Calculated using data from 54 ZIP Codes within target
-                  geography in the{" "}
-                  {searchResults.time.years.length === 1 ? "year of" : "years"}{" "}
-                  {searchResults.time.years.join(", ")}
-                </h2>
-              </div>
+            {showDashboard && q2DashboardData && dashboardKey === `q2` && (
+              <Q2Dashboard
+                dashboardData={q2DashboardData}
+                searchResults={q2SearchResults}
+              />
+            )}
+
+            {showDashboard && q3DashboardData && dashboardKey === `q3` && (
+              <Q3Dashboard
+                dashboardData={q3DashboardData}
+                searchResults={q3SearchResults}
+              />
+            )}
+
+            {showDashboard && q4DashboardData && dashboardKey === `q4` && (
+              <Q4Dashboard
+                dashboardData={q4DashboardData}
+                searchResults={q4SearchResults}
+              />
             )}
 
             <Separator className="mt-4 mb-4" />
 
             <div className={"w-full flex flex-col items-center justify-center"}>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="hover:border-slate-400 transition-all duration-200 text-sm flex flex-row items-center justify-center">
-                  Customize Data Display &nbsp;{" "}
-                  <ChevronDown className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Data Table Preview
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Top 10 Observations by Unit
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Top 10 Observations by Sub-Unit
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="hover:cursor-pointer">
-                    Value Over Time
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <h2 className="text-2xl font-bold">
-                Top 10 Observations by Sub-Unit
-              </h2>
-
-              <p className="text-xs italic text-slate-600">
-                Ordered by the{" "}
-                {searchResults.intensity.order === "desc" && "highest"}{" "}
-                {searchResults.intensity.order === "asc" && "lowest"} value of{" "}
-                {searchResults.intensity.variable === "est" && "establishments"}
-                {searchResults.intensity.variable === "emp" && "employees"}
-              </p>
-              {dashboardData?.q1Top10BySubUnit && (
-                <ChartContainer
-                  config={{
-                    desktop: {
-                      label: "Desktop",
-                      color: "#2563eb",
-                    },
-                    mobile: {
-                      label: "Mobile",
-                      color: "#60a5fa",
-                    },
-                  }}
-                  className="h-full w-full mt-4 mb-4"
-                >
-                  <BarChart
-                    width={400}
-                    height={500}
-                    data={dashboardData.q1Top10BySubUnit}
-                  >
-                    <Bar dataKey={"total"} fill={"#4285F4"} />
-                    <XAxis dataKey="zip" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                  </BarChart>
-                </ChartContainer>
-              )}
+              <DropdownCustomizeDataDisplay />
             </div>
 
+            {showDashboard && q1DashboardData && dashboardKey === `q1` && (
+              <DashboardBarChart
+                chartInfo={`Ordered by the
+              ${
+                q1SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
+              } value of
+              ${
+                q1SearchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                data={q1DashboardData.q1Top10BySubUnit}
+                dataKeyXAxis="zip"
+                dataKeyBar="total"
+              />
+            )}
+
+            {showDashboard && q2DashboardData && dashboardKey === `q2` && (
+              <DashboardBarChart
+                chartInfo={`Ordered by the
+              ${
+                q2SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
+              } value of
+              ${
+                q2SearchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                data={q2DashboardData.q2Top10BySubUnit}
+                dataKeyXAxis="zip"
+                dataKeyBar="total"
+              />
+            )}
+
+            {showDashboard && q3DashboardData && dashboardKey === `q3` && (
+              <DashboardTable
+                data={q3DashboardData.q3Data}
+                tableInfo="ZIP Codes within target geography"
+              />
+            )}
+
+            {showDashboard && q4DashboardData && dashboardKey === `q4` && (
+              <DashboardLineChart
+                chartInfo={`Evolution of the percentual of gross income as full market value over the years
+              `}
+                data={q4DashboardData.q4HistoricalData}
+                dataKeyXAxis="year"
+                dataKeyYAxis="perc_gross_income_as_full_market_value"
+              />
+            )}
+
             <Separator className="mt-4 mb-4" />
-            <DropdownMenu>
-              <DropdownMenuTrigger className="border-2 border-slate-600 hover:border-slate-400 transition-all duration-200">
-                Export Data
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .CSV
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .XLSX
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:cursor-pointer">
-                  to .PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <DropdownExportData />
           </div>
         )}
       </div>
