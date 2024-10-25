@@ -62,9 +62,8 @@ import DashboardLineChart from "@/components/dashboard-line-chart";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState(
-    "nyc lowest gross income per full market value borough block"
-  );
+  const [search, setSearch] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
 
   const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
@@ -451,6 +450,38 @@ export default function EconomicData() {
   );
 
   useEffect(() => {
+    const dashQ1Key = "dc economic data congressional district";
+    const dashQ2Key =
+      "new york manufacturing economic data 1st congressional district";
+    const dashQ3Key = "dc jobs per housing stats";
+    const dashQ4Key =
+      "nyc lowest gross income per full market value borough block";
+
+    if (dashQ1Key.includes(search)) {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
+      setSearchSuggestions((prev) => [...prev, dashQ1Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
+    }
+    if (dashQ2Key.includes(search)) {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
+      setSearchSuggestions((prev) => [...prev, dashQ2Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
+    }
+    if (dashQ3Key.includes(search)) {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
+      setSearchSuggestions((prev) => [...prev, dashQ3Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
+    }
+    if (dashQ4Key.includes(search)) {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
+      setSearchSuggestions((prev) => [...prev, dashQ4Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
+    }
+
     const down = (e: KeyboardEvent) => {
       if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -469,6 +500,13 @@ export default function EconomicData() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, [buildDashboard, dashboardKey, isSearching, search]);
+
+  const shouldShowSuggestions =
+    search !== "" &&
+    search !== undefined &&
+    searchSuggestions &&
+    searchSuggestions.length > 0 &&
+    (searchSuggestions.length !== 1 || searchSuggestions[0] !== search);
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -560,14 +598,25 @@ export default function EconomicData() {
               </DialogTrigger>
               <DialogContent className="max-w-[90%] md:max-w-2/3  w-[90%] md:w-2/3">
                 <DialogHeader>
-                  <DialogDescription>
+                  <DialogDescription className="flex flex-col gap-0">
                     <Input
                       placeholder="Search by anything"
                       value={search}
                       onInput={handleSearch}
                       autoFocus
                       className="text-nowrap"
-                    ></Input>
+                    />
+                    <div className="w-full h-full">
+                      {shouldShowSuggestions &&
+                        searchSuggestions.map((suggestion) => (
+                          <div
+                            className="w-full pl-3 pr-3 pt-1 pb-1 truncate hover:bg-gray-700 hover:cursor-pointer"
+                            onClick={() => setSearch(suggestion)}
+                          >
+                            {suggestion}
+                          </div>
+                        ))}
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center min-w-[50vw]">
