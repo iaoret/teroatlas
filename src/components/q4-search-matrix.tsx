@@ -145,7 +145,10 @@ export default function Q4SearchMatrix(props: {
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center border-gray-500 border-[1px] text-xs hover:cursor-pointer"></div>
           <div className="w-[calc(100%/7)] h-full hover:bg-slate-800 flex items-center justify-center text-center rounded-br-md border-gray-500 border-[1px] text-xs hover:cursor-pointer">
-            Boro-Block-Lot (aggregated)
+            <ul>
+              <li className="font-semibold text-tero-100">Boro-Block</li>
+              <li>Boro-Block-Lot (aggregated)</li>
+            </ul>
           </div>
         </div>
       </div>

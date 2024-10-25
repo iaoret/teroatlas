@@ -33,7 +33,7 @@ export default function Q4Dashboard(props: {
             : grossIncome.toLocaleString("en-US")}
         </h2>
         <h2 className="text-xl font-semibold  mt-1">
-          Average Estimated Gross Income
+          Average Estimated Gross Income (per building)
         </h2>
       </div>
       <div className="text-center">
@@ -43,7 +43,7 @@ export default function Q4Dashboard(props: {
             : marketValue.toLocaleString("en-US")}
         </h2>
         <h2 className="text-xl font-semibold mt-1">
-          Average Full Market Value
+          Average Full Market Value (per building)
         </h2>
       </div>
       <div className="text-center text-tero-100">

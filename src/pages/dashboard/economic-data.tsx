@@ -62,9 +62,8 @@ import DashboardLineChart from "@/components/dashboard-line-chart";
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
-  const [search, setSearch] = useState(
-    "nyc lowest gross income per full market value borough block"
-  );
+  const [search, setSearch] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
 
   const [q1SearchResults, setQ1SearchResults] = useState<Q1SearchResults>({
     length: null,
@@ -170,7 +169,7 @@ export default function EconomicData() {
 
     if (
       search.includes("dc") &&
-      search.includes("jobs per housing stats") &&
+      search.includes("jobs per housing unit stats") &&
       search.includes("ward")
     )
       return "q3";
@@ -214,6 +213,11 @@ export default function EconomicData() {
           environment.urlRest + `/rpc/get_min_max_emp_est`
         ).then(async (res) => res.json());
 
+        const coverage = await fetch(
+          environment.urlRest +
+            `/rpc/q1_area_coverage_by_subunits?district_id=1`
+        ).then(async (res) => res.json());
+
         setQ1DashboardData({
           q1Totals: q1Totals,
           q1Top10BySubUnit: q1Top10BySubUnit,
@@ -225,6 +229,7 @@ export default function EconomicData() {
             maxEst: choropleticData[0].max_est,
           },
           chartInfo: "",
+          coverage: coverage,
         });
 
         return {
@@ -279,6 +284,11 @@ export default function EconomicData() {
             `/q2_zip_code_econ_data_with_geojson?id_q2_nys_congressional_districts=eq.1&naics=ilike.*${q2SearchResults.breadth.naics}*&limit=100`
         ).then(async (res) => res.json());
 
+        const coverage: number = await fetch(
+          environment.urlRest +
+            `/rpc/q2_area_coverage_by_subunits?naics_code=${q2SearchResults.breadth.naics}&district_id=1`
+        ).then(async (res) => res.json());
+
         setQ2DashboardData({
           q2Totals: q2Totals,
           q2Top10BySubUnit: q2Top10BySubUnit,
@@ -291,6 +301,7 @@ export default function EconomicData() {
             maxEst: choropleticData[0].max_est,
           },
           chartInfo: "",
+          coverage: coverage,
         });
 
         return {
@@ -341,6 +352,11 @@ export default function EconomicData() {
             `/q3_dc_zip_codes_est_jobs_wards?ward_name=eq.${q3SearchResults.place}&select=zip,name,emp`
         ).then(async (res) => res.json());
 
+        const coverage: number = await fetch(
+          environment.urlRest +
+            `/rpc/q3_area_coverage_by_subunits?ward_identifier=${q3SearchResults.place}`
+        ).then(async (res) => res.json());
+
         setQ3DashboardData({
           q3Totals: q3Totals,
           q3Data: q3Data,
@@ -350,6 +366,7 @@ export default function EconomicData() {
             maxRatio: choropleticData[0].max_ratio,
           },
           chartInfo: "",
+          coverage: coverage,
         });
 
         return {
@@ -406,6 +423,7 @@ export default function EconomicData() {
             maxPerc:
               choropleticData[0].max_perc_gross_income_as_full_market_value,
           },
+          coverage: 1,
         });
 
         return {
@@ -451,6 +469,38 @@ export default function EconomicData() {
   );
 
   useEffect(() => {
+    const dashQ1Key = "dc economic data congressional district";
+    const dashQ2Key =
+      "new york manufacturing economic data 1st congressional district";
+    const dashQ3Key = "dc jobs per housing unit stats ward 1";
+    const dashQ4Key =
+      "nyc lowest gross income per full market value borough block";
+
+    if (dashQ1Key.includes(search) || search === "query 1") {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
+      setSearchSuggestions((prev) => [...prev, dashQ1Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
+    }
+    if (dashQ2Key.includes(search) || search === "query 2") {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
+      setSearchSuggestions((prev) => [...prev, dashQ2Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
+    }
+    if (dashQ3Key.includes(search) || search === "query 3") {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
+      setSearchSuggestions((prev) => [...prev, dashQ3Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
+    }
+    if (dashQ4Key.includes(search) || search === "query 4") {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
+      setSearchSuggestions((prev) => [...prev, dashQ4Key]);
+    } else {
+      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
+    }
+
     const down = (e: KeyboardEvent) => {
       if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -469,6 +519,26 @@ export default function EconomicData() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, [buildDashboard, dashboardKey, isSearching, search]);
+
+  const shouldShowSuggestions =
+    search !== "" &&
+    search !== undefined &&
+    searchSuggestions &&
+    searchSuggestions.length > 0 &&
+    (searchSuggestions.length !== 1 || searchSuggestions[0] !== search);
+
+  const coverage =
+    Math.floor(
+      ((dashboardKey === "q1"
+        ? q1DashboardData?.coverage
+        : dashboardKey === "q2"
+        ? q2DashboardData?.coverage
+        : dashboardKey === "q3"
+        ? q3DashboardData?.coverage
+        : dashboardKey === "q4"
+        ? q4DashboardData?.coverage
+        : 0) || 0) * 10000
+    ) / 100;
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -560,14 +630,25 @@ export default function EconomicData() {
               </DialogTrigger>
               <DialogContent className="max-w-[90%] md:max-w-2/3  w-[90%] md:w-2/3">
                 <DialogHeader>
-                  <DialogDescription>
+                  <DialogDescription className="flex flex-col gap-0">
                     <Input
                       placeholder="Search by anything"
                       value={search}
                       onInput={handleSearch}
                       autoFocus
                       className="text-nowrap"
-                    ></Input>
+                    />
+                    <div className="w-full h-full">
+                      {shouldShowSuggestions &&
+                        searchSuggestions.map((suggestion) => (
+                          <div
+                            className="w-full pl-3 pr-3 pt-1 pb-1 truncate hover:bg-gray-700 hover:cursor-pointer"
+                            onClick={() => setSearch(suggestion)}
+                          >
+                            {suggestion}
+                          </div>
+                        ))}
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center min-w-[50vw]">
@@ -714,6 +795,19 @@ export default function EconomicData() {
 
             <Separator className="mt-4 mb-4" />
 
+            {coverage && (
+              <h2 className="text-xs italic text-slate-600 text-center mb-3">
+                Area from subunits covers {coverage}% of the highlighted unit
+              </h2>
+            )}
+            {coverage && coverage > 0 && coverage !== 100 && (
+              <Button
+                className="hover:border-slate-400 transition-all duration-200 text-sm flex flex-row items-center justify-center mb-1"
+                variant={"ghost"}
+              >
+                Trim subunits to exact boundaries
+              </Button>
+            )}
             <DropdownExportData />
           </div>
         )}
