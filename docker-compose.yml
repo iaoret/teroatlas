@@ -11,7 +11,7 @@ services:
       context: .
       dockerfile: Dockerfile.database
     ports:
-      - "7432:5432"
+      - "6432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -31,7 +31,7 @@ services:
   tiles:
     image: pramsey/pg_tileserv
     ports:
-      - "7433:7800"
+      - "6433:7800"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db/teroatlas
     depends_on:
@@ -46,7 +46,7 @@ services:
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: postgres
     ports:
-      - "7434:3000"
+      - "6434:3000"
     depends_on:
       db:
         condition: service_healthy
