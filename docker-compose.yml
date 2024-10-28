@@ -19,6 +19,7 @@ services:
       <<: *db-env
     volumes:
       - ./data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
     <<: *restart-policy
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
@@ -55,4 +56,4 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8081:80"
+      - "3000:80"
