@@ -25,5 +25,8 @@ dist-ssr
 
 # Database files
 /data
+/dev_data
 *.backup
 tsconfig.app.tsbuildinfo
+/initdb
+/delivery

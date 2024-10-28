@@ -1,0 +1,58 @@
+version: '3.8'
+
+# Define shared environment variables for the database
+x-db-env: &db-env
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: postgres
+
+# Define shared restart policy
+x-restart: &restart-policy
+  restart: always
+
+services:
+  db:
+    image: postgis/postgis:latest
+    ports:
+      - "6432:5432"
+    environment:
+      <<: *db-env
+    volumes:
+      - ./dev_data:/var/lib/postgresql/data
+    <<: *restart-policy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tiles:
+    image: pramsey/pg_tileserv
+    ports:
+      - "6433:7800"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db/postgres
+    depends_on:
+      db:
+        condition: service_healthy
+    <<: *restart-policy
+
+  rest:
+    image: postgrest/postgrest
+    environment:
+      PGRST_DB_URI: postgresql://postgres:postgres@db/postgres
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: postgres
+    ports:
+      - "6434:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    <<: *restart-policy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"

@@ -1,10 +1,5 @@
 version: '3.8'
 
-# Define shared environment variables for the database
-x-db-env: &db-env
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-  POSTGRES_DB: postgres
 
 # Define shared restart policy
 x-restart: &restart-policy
@@ -12,26 +7,33 @@ x-restart: &restart-policy
 
 services:
   db:
-    image: postgis/postgis:latest
+    build: 
+      context: .
+      dockerfile: Dockerfile.database
     ports:
       - "6432:5432"
     environment:
-      <<: *db-env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     volumes:
       - ./data:/var/lib/postgresql/data
+      - ./db_image:/mnt
+      - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
     <<: *restart-policy
+    command: bash -c "chown -R postgres:postgres /docker-entrypoint-initdb.d/initdb.sh && chmod +x /docker-entrypoint-initdb.d/initdb.sh && chown -R postgres:postgres /mnt && chmod -R 777 /mnt && docker-entrypoint.sh postgres"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "psql", "-U", "postgres", "-d", "teroatlas", "-c", "SELECT 1 FROM q4_nyc_boro_block_economic_data LIMIT 1"]
+      interval: 120s
+      timeout: 30s
+      retries: 100
 
   tiles:
     image: pramsey/pg_tileserv
     ports:
       - "6433:7800"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db/postgres
+      DATABASE_URL: postgresql://postgres:postgres@db/teroatlas
     depends_on:
       db:
         condition: service_healthy
@@ -40,7 +42,7 @@ services:
   rest:
     image: postgrest/postgrest
     environment:
-      PGRST_DB_URI: postgresql://postgres:postgres@db/postgres
+      PGRST_DB_URI: postgresql://postgres:postgres@db/teroatlas
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: postgres
     ports:
@@ -55,4 +57,4 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8081:80"
+      - "3000:80"
