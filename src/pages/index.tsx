@@ -5,6 +5,8 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
 import { useNavigate } from "react-router-dom";
+import thumbnailEconomicData from "@/assets/thumb-economic-data-dashboard-item.png";
+import thumbnailRetailDashboard from "@/assets/thumb-retail-dashboard-item.png";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -32,7 +34,13 @@ export default function Home() {
         <p>Choose a dashboard below to start</p>
         <div className="grid 2xl:grid-cols-2 lg:grid-cols-2 md:grid-cols-2 gap-4 mt-10">
           <DashboardItem
-            image={<img src={"https://placehold.co/300x300"} alt="" />}
+            image={
+              <img
+                className="object-cover h-full"
+                src={thumbnailEconomicData}
+                alt=""
+              />
+            }
             title={"Economic Data"}
             description={
               "This dashboard displays trends and statistics for various economic data across the United Stated"
@@ -48,7 +56,7 @@ export default function Home() {
             onClick={() => handleClick("/dashboard/economic-data")}
           />
           <DashboardItem
-            image={<img src="https://placehold.co/300x300" alt="" />}
+            image={<img src={thumbnailRetailDashboard} alt="" />}
             title={"Items for Sale"}
             description={
               "This dashboard allows to filter and visualize products on sale by city, ward or ZIP Code"
