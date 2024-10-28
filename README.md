@@ -6,7 +6,7 @@ The overall structure of the app follows this pattern, using the ports as config
 
 ![Tero Atlas Structure](./scheme.png)
 
-You can either run the frontend as a web app through `localhost:3000` or install the Tauri desktop app and run it from there. The artifacts are built by the Github Actions CI pipeline and can be downloaded from the [Releases](https://github.com/paschendale/tero-atlas/releases) page. Either way, you will need to run the backend first, which can be done by running `docker-compose up` in the root directory or by following the instructions below.
+You can either run the frontend as a web app through `localhost:3000` or install the Tauri desktop app and run it from there. The artifacts are built by the Github Actions CI pipeline and can be downloaded from the [Releases](https://github.com/paschendale/tero-atlas/releases) page for your operating system. Either way, you will need to run the backend first, which can be done by running `docker-compose up` in the root directory or by following the instructions below.
 
 ## Running the app
 
@@ -21,10 +21,10 @@ To run the app you will need to have Docker and Docker Compose installed. The ea
 
 Tero Atlas uses a PostGIS database with pre-built queries to showcase the use of the system. The database can be downloaded on this link: [Tero Atlas Database](https://1drv.ms/u/s!AuKYaGBxmghfqppxI3a_HzR09U0gzw?e=kiy0SC).
 
-After downloaded, you will need to store the `.sql` file in the `initdb` folder of the Tero Atlas repository. You can do this by dragging the file into the folder or by running the following command in the root directory:
+After downloaded, you will need to store the `.backup` file in the `db_image` folder of the Tero Atlas repository. You can do this by dragging the file into the folder or by running the following command in the root directory:
 
 ```bash
-cp <path-to-backup-file> ./initdb/teroatlas.sql
+cp <path-to-backup-file> ./latest.backup
 ```
 
 ### Running the app
@@ -37,4 +37,32 @@ docker-compose up
 
 This will start the database, the vector tile server, the PostgREST API and the frontend.
 
-It will take a few minutes for the database to be ready, so you might need to wait a bit before opening the frontend.
+It will take a few minutes for the database to be ready, so you might need to wait a bit before opening the frontend. When the restoring process has finished, you will see the following message on your console:
+
+> Backup successfully restored on teroatlas!"
+
+Don't worry about errors such as these:
+
+> ERROR:  materialized view "q4_nyc_boro_block_economic_data" has not been populated
+> HINT:  Use the REFRESH MATERIALIZED VIEW command.
+> STATEMENT:  SELECT 1 FROM q4_nyc_boro_block_economic_data LIMIT 1 
+
+These are the result of the health checks done while starting the containers. They are not errors, but they are just a reminder that the database is not ready yet.
+
+## Resetting database
+
+If you want to reset the database, you can run the following command in the root directory:
+
+```bash
+docker-compose down -v
+```
+
+This will stop the database, the vector tile server, the PostgREST API and the frontend.
+
+You will need to delete the `data` folder and the `db_image` folder, which will be recreated by the newest database image.	
+
+After that, you can run the following command to start the database again:
+
+```bash
+docker-compose up
+```
