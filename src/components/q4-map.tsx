@@ -27,16 +27,6 @@ export default function Q4Map(props: {
                 `perc_gross_income_as_full_market_value`
               );
               const uid = feature.get("uid");
-              console.log(
-                "variable",
-                props.searchResults.intensity.variable,
-                "value",
-                value,
-                "min",
-                props.dashboardData?.choroplethicData.minPerc,
-                "max",
-                props.dashboardData?.choroplethicData.maxPerc
-              );
               return new Style({
                 stroke: new Stroke({
                   color:
@@ -59,11 +49,8 @@ export default function Q4Map(props: {
                 }),
               });
             },
-            [props.dashboardData, props.searchResults]
+            [props.dashboardData]
           )}
-          // onPointerMove={(e) => {
-          //   console.log(e.target.getProperties());
-          // }}
           onClick={(e) => {
             console.log(e.target.getProperties());
           }}

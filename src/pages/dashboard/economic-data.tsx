@@ -251,7 +251,6 @@ export default function EconomicData() {
         size: mapRef.current.ol.getSize(),
         duration: 1000,
         padding: [50, 50, 50, 50],
-        callback: () => console.log("just fitted"),
       });
     }
     setLoading(false);
@@ -323,7 +322,6 @@ export default function EconomicData() {
         size: mapRef.current.ol.getSize(),
         duration: 1000,
         padding: [50, 50, 50, 50],
-        callback: () => console.log("just fitted"),
       });
     }
     setLoading(false);
@@ -386,7 +384,6 @@ export default function EconomicData() {
         size: mapRef.current.ol.getSize(),
         duration: 1000,
         padding: [50, 50, 50, 50],
-        callback: () => console.log("just fitted"),
       });
     }
     setLoading(false);
@@ -443,7 +440,6 @@ export default function EconomicData() {
         size: mapRef.current.ol.getSize(),
         duration: 1000,
         padding: [50, 50, 50, 50],
-        callback: () => console.log("just fitted"),
       });
     }
     setLoading(false);

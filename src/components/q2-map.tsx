@@ -40,24 +40,6 @@ export default function Q2Map(props: {
             (feature: FeatureLike) => {
               if (!props.dashboardData) return;
               const value = feature.get(props.searchResults.intensity.variable);
-              console.log(
-                "variable",
-                props.searchResults.intensity.variable,
-                "value",
-                value,
-                "min",
-                props.dashboardData?.choroplethicData[
-                  props.searchResults.intensity.variable === "aprox_emp"
-                    ? "minEmp"
-                    : "minEst"
-                ],
-                "max",
-                props.dashboardData?.choroplethicData[
-                  props.searchResults.intensity.variable === "aprox_emp"
-                    ? "maxEmp"
-                    : "maxEst"
-                ]
-              );
               return new Style({
                 stroke: new Stroke({
                   color: "#00447C",
@@ -85,9 +67,6 @@ export default function Q2Map(props: {
             },
             [props.dashboardData, props.searchResults]
           )}
-          // onPointerMove={(e) => {
-          //   console.log(e.target.getProperties());
-          // }}
           onClick={(e) => {
             console.log(e.target.getProperties());
           }}

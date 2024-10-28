@@ -141,7 +141,7 @@ export default function RetailMap() {
     }
 
     fetchProducts();
-  }, [getSearchKey]);
+  }, [getFeatureId, getMapKey, getSearchKey]);
 
   const searchKey = getSearchKey();
 

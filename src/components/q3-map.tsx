@@ -59,9 +59,6 @@ export default function Q3Map(props: {
             },
             [props.dashboardData, props.searchResults]
           )}
-          // onPointerMove={(e) => {
-          //   console.log(e.target.getProperties());
-          // }}
           onClick={(e) => {
             console.log(e.target.getProperties());
           }}
