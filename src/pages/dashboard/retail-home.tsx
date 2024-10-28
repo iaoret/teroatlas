@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import ShopByLocal from "@/components/shop-my-local";
 import environments from "@/environments";
 import ProductOnResult from "@/components/product-on-result";
+import blackRayban from "@/assets/black-ray-ban.webp";
+import brownRayban from "@/assets/brown-ray-ban.webp";
 
 export default function RetailHome() {
   const [search, setSearch] = useState<{
@@ -165,7 +167,9 @@ export default function RetailHome() {
                   key={i}
                   title={result.title}
                   vendor={result.vendor}
-                  image={result.image}
+                  image={
+                    result.title.includes("Brown") ? brownRayban : blackRayban
+                  }
                   price={result.price}
                 />
               ))}
