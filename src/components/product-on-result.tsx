@@ -5,7 +5,7 @@ export default function ProductOnResult(props: {
   price: number;
 }) {
   return (
-    <div className="h-[150px] flex flex-col items-center justify-between hover:cursor-pointer">
+    <div className="h-[170px] w-[200px] flex flex-col items-center justify-between hover:cursor-pointer mb-4">
       <img
         src={props.image}
         className="w-auto h-[50%] rounded-sm object-cover mt-1 hover:scale-105 transition-all duration-300 "
