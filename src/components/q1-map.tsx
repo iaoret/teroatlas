@@ -52,9 +52,6 @@ export default function Q1Map(props: {
           },
           [props.dashboardData, props.searchResults]
         )}
-        // onPointerMove={(e) => {
-        //   console.log(e.target.getProperties());
-        // }}
         onClick={(e) => {
           console.log(e.target.getProperties());
         }}

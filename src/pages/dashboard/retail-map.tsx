@@ -12,6 +12,8 @@ import ShopByLocal from "@/components/shop-my-local";
 import environments from "@/environments";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductOnResult from "@/components/product-on-result";
+import blackRayban from "@/assets/black-ray-ban.webp";
+import brownRayban from "@/assets/brown-ray-ban.webp";
 
 export default function RetailMap() {
   const mapRef = useRef<RMap>(null);
@@ -141,7 +143,7 @@ export default function RetailMap() {
     }
 
     fetchProducts();
-  }, [getSearchKey]);
+  }, [getFeatureId, getMapKey, getSearchKey]);
 
   const searchKey = getSearchKey();
 
@@ -228,7 +230,9 @@ export default function RetailMap() {
                 key={i}
                 title={result.title}
                 vendor={result.vendor}
-                image={result.image}
+                image={
+                  result.title.includes("Brown") ? brownRayban : blackRayban
+                }
                 price={result.price}
               />
             ))}

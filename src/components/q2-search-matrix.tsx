@@ -25,7 +25,6 @@ export default function Q2SearchMatrix(props: {
     const currentOrder = props.searchResults.intensity.order;
 
     if (currentVariable === variable && currentOrder === order) {
-      console.log("same");
       return;
     } else {
       props.setSearchResults({

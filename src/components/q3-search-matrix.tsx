@@ -14,7 +14,6 @@ export default function Q3SearchMatrix(props: {
     const currentOrder = props.searchResults.intensity.order;
 
     if (currentVariable === variable && currentOrder === order) {
-      console.log("same");
       return;
     } else {
       props.setSearchResults({

@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import ShopByLocal from "@/components/shop-my-local";
 import environments from "@/environments";
 import ProductOnResult from "@/components/product-on-result";
+import blackRayban from "@/assets/black-ray-ban.webp";
+import brownRayban from "@/assets/brown-ray-ban.webp";
 
 export default function RetailHome() {
   const [search, setSearch] = useState<{
@@ -35,7 +37,7 @@ export default function RetailHome() {
   const navigate = useNavigate();
 
   function handleGoBack() {
-    navigate(-1);
+    navigate("/");
   }
 
   const handleSearch = useCallback(
@@ -165,7 +167,9 @@ export default function RetailHome() {
                   key={i}
                   title={result.title}
                   vendor={result.vendor}
-                  image={result.image}
+                  image={
+                    result.title.includes("Brown") ? brownRayban : blackRayban
+                  }
                   price={result.price}
                 />
               ))}
@@ -177,43 +181,19 @@ export default function RetailHome() {
             <div className="w-1/3 lg:w-1/4 h-full">
               <p className="text-xs pb-2">New products at your local market</p>
               <div className="w-full h-full rounded-lg border-slate-100 border-2 grid grid-cols-2 gap-4 p-2 items-start">
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
+                <ProductOnCard title="" image={blackRayban} />
+                <ProductOnCard title="" image={brownRayban} />
+                <ProductOnCard title="" image={brownRayban} />
+                <ProductOnCard title="" image={blackRayban} />
               </div>
             </div>
             <div className="w-1/3 lg:w-1/4 h-full">
               <p className="text-xs pb-2">Pickup where you have left</p>
               <div className="w-full h-full rounded-lg border-slate-100 border-2 grid grid-cols-2 gap-4 p-2 items-start">
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
+                <ProductOnCard title="" image={brownRayban} />
+                <ProductOnCard title="" image={blackRayban} />
+                <ProductOnCard title="" image={blackRayban} />
+                <ProductOnCard title="" image={brownRayban} />
               </div>
             </div>
             <div className="w-1/3 lg:w-1/4 h-full">
@@ -221,22 +201,10 @@ export default function RetailHome() {
                 Deals based on items previously searched
               </p>
               <div className="w-full h-full rounded-lg border-slate-100 border-2 grid grid-cols-2 gap-4 p-2 items-start">
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
-                <ProductOnCard
-                  title="Lorem Ipsum"
-                  image="https://placehold.co/80x70?text=Click me!"
-                />
+                <ProductOnCard title="" image={brownRayban} />
+                <ProductOnCard title="" image={blackRayban} />
+                <ProductOnCard title="" image={blackRayban} />
+                <ProductOnCard title="" image={brownRayban} />
               </div>
             </div>
           </div>

@@ -15,22 +15,23 @@ export default function DashboardItem(props: {
   onClick?: () => void;
 }) {
   return (
-    <Card
-      className="bg-primary-foreground hover:bg-zinc-800 hover:shadow-lg transition-all duration-200 rounded-lg hover:cursor-pointer max-w-[400px]"
-      onClick={props.onClick}
-    >
-      <div className="flex flex-row items-center">
-        <div className="min-h-40 min-w-40 mt-1 ml-4 rounded-l-md bg-black flex flex-col justify-center items-center">
-          {props.image}
+    <div>
+      <Card
+        className="bg-primary-foreground hover:bg-zinc-800 hover:shadow-lg transition-all duration-200 rounded-lg hover:cursor-pointer max-w-[400px]"
+        onClick={props.onClick}
+      >
+        <div className="h-full flex flex-row items-center">
+          <div className="h-full w-30 rounded-full bg-black flex flex-col justify-center items-center">
+            {props.image}
+          </div>
+          <div></div>
         </div>
-        <div>
-          <CardHeader>
-            <CardTitle>{props.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">{props.description}</CardContent>
-          <CardFooter>{props.footer}</CardFooter>
-        </div>
-      </div>
-    </Card>
+        <CardHeader>
+          <CardTitle>{props.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">{props.description}</CardContent>
+        <CardFooter>{props.footer}</CardFooter>
+      </Card>
+    </div>
   );
 }

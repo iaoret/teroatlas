@@ -12,9 +12,6 @@ export default function Q1SearchMatrix(props: {
   const { toast } = useToast();
 
   function handleClickOnYear(year: number) {
-    console.log(
-      `years selected: ${props.searchResults.time.years}, just clicked on ${year}`
-    );
     const currentYears = props.searchResults.time.years;
 
     if (currentYears.includes(year)) {
@@ -24,7 +21,6 @@ export default function Q1SearchMatrix(props: {
           title: "No years selected",
           description: "You must select at least one year",
         });
-        console.log("oops, cant do that");
         return;
       }
       props.setSearchResults({
@@ -50,7 +46,6 @@ export default function Q1SearchMatrix(props: {
     const currentOrder = props.searchResults.intensity.order;
 
     if (currentVariable === variable && currentOrder === order) {
-      console.log("same");
       return;
     } else {
       props.setSearchResults({
