@@ -12,8 +12,8 @@ import ShopByLocal from "@/components/shop-my-local";
 import environments from "@/environments";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductOnResult from "@/components/product-on-result";
-import blackRayban from "@/assets/black-ray-ban.webp";
-import brownRayban from "@/assets/brown-ray-ban.webp";
+import blackRayban from "@/assets/black-ray-ban-100x100.jpg";
+import brownRayban from "@/assets/brown-ray-ban-100x100.jpg";
 
 export default function RetailMap() {
   const mapRef = useRef<RMap>(null);

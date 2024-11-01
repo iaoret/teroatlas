@@ -9,8 +9,8 @@ import { useNavigate } from "react-router-dom";
 import ShopByLocal from "@/components/shop-my-local";
 import environments from "@/environments";
 import ProductOnResult from "@/components/product-on-result";
-import blackRayban from "@/assets/black-ray-ban.webp";
-import brownRayban from "@/assets/brown-ray-ban.webp";
+import blackRayban from "@/assets/black-ray-ban-100x100.jpg";
+import brownRayban from "@/assets/brown-ray-ban-100x100.jpg";
 
 export default function RetailHome() {
   const [search, setSearch] = useState<{
