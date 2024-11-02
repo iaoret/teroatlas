@@ -22,7 +22,8 @@ export default function Q4Dashboard(props: {
         {props.dashboardData.q4Data[0].block}
       </h2>
       <h2 className="text-xl font-semibold text-center mb-4 text-gray-500">
-        Lowest gross income block per full market value
+        {props.searchResults.intensity.order === "desc" ? "Highest" : "Lowest"}{" "}
+        gross income block per full market value
       </h2>
 
       <Separator className="mt-4 mb-4" />

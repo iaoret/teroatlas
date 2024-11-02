@@ -115,8 +115,6 @@ export default function Q4SearchMatrix(props: {
                   <li
                     key={item.title}
                     className={`font-semibold hover:font-bold hover:cursor-pointer ${
-                      props.searchResults.intensity.variable ===
-                        item.variable &&
                       props.searchResults.intensity.order === item.order &&
                       "text-tero-100"
                     }`}

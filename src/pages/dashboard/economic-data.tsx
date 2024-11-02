@@ -394,7 +394,7 @@ export default function EconomicData() {
       try {
         const q4Data: Q4Data[] = await fetch(
           environment.urlRest +
-            `/q4_nyc_boro_block_economic_data?order=perc_gross_income_as_full_market_value.asc.nullslast&limit=1`
+            `/q4_nyc_boro_block_economic_data?order=perc_gross_income_as_full_market_value.${q4SearchResults.intensity.order}.nullslast&limit=1`
         ).then((res) => res.json());
 
         const q4HistoricalData: Q4HistoricalData[] = await fetch(
@@ -443,7 +443,7 @@ export default function EconomicData() {
       });
     }
     setLoading(false);
-  }, []);
+  }, [q4SearchResults]);
 
   const buildDashboard = useCallback(
     async (key: string | undefined) => {
