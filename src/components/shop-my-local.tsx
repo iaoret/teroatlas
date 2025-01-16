@@ -142,7 +142,7 @@ export default function ShopByLocal(props: { searchKey: string }) {
           <DialogDescription>
             <Input
               ref={inputSearchByLocalRef}
-              placeholder="Search by city, neighborhood, or anywhere else"
+              placeholder="Search by city, neighborhood, or anywhere else..."
               value={searchLocal.search}
               onChange={handleSearchByLocal}
               autoFocus
