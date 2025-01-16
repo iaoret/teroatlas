@@ -49,7 +49,7 @@ export default function Q3SearchMatrix(props: {
     }
   }, [props]);
 
-  if (!props.searchResults.place) return <>No results found</>;
+  if (!props.searchResults.place) return <></>;
 
   return (
     <div className="flex flex-col items-center">

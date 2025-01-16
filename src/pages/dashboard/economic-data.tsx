@@ -681,7 +681,7 @@ export default function EconomicData() {
                       searchResults={q4SearchResults}
                     />
                   )}
-                  {!dashboardKey && !loading && <>No results found</>}
+                  {!dashboardKey && dashboardKey && <></>}
                 </div>
               </DialogContent>
             </Dialog>
