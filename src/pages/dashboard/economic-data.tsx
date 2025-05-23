@@ -59,6 +59,12 @@ import Q4SearchMatrix from "@/components/q4-search-matrix";
 import Q4Map from "@/components/q4-map";
 import Q4Dashboard from "@/components/q4-dashboard";
 import DashboardLineChart from "@/components/dashboard-line-chart";
+import { dashboardRegistry } from "./dashboardRegistry";
+
+function getDashboardConfig(search: string) {
+  const lower = search.toLowerCase();
+  return dashboardRegistry.find((d) => d.match(lower));
+}
 
 export default function EconomicData() {
   const mapRef = useRef<RMap>(null);
@@ -150,41 +156,8 @@ export default function EconomicData() {
     navigate(-1);
   }
 
-  function whatDashboardToRender(search: string) {
-    search = search.toLowerCase();
-
-    if (
-      search.includes("dc") &&
-      search.includes("congressional district") &&
-      search.includes("economic data")
-    )
-      return "q1";
-
-    if (
-      search.includes("new york") &&
-      search.includes("manufacturing economic data") &&
-      search.includes("1st congressional district")
-    )
-      return "q2";
-
-    if (
-      search.includes("dc") &&
-      search.includes("jobs per housing unit stats") &&
-      search.includes("ward")
-    )
-      return "q3";
-
-    if (
-      search.includes("nyc") &&
-      search.includes("lowest gross income per full market value") &&
-      search.includes("borough block")
-    )
-      return "q4";
-
-    return undefined;
-  }
-
-  const dashboardKey = whatDashboardToRender(search);
+  const dashboardConfig = getDashboardConfig(search);
+  const dashboardKey = dashboardConfig?.key;
 
   const buildDashboardQ1 = useCallback(async () => {
     async function fetchData() {
@@ -553,28 +526,28 @@ export default function EconomicData() {
           <RLayerTile url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           {dashboardKey === "q1" && (
             <Q1Map
-              key={`q1-map`}
+              key="q1-map"
               dashboardData={q1DashboardData}
               searchResults={q1SearchResults}
             />
           )}
           {dashboardKey === "q2" && (
             <Q2Map
-              key={`q2-map`}
+              key="q2-map"
               dashboardData={q2DashboardData}
               searchResults={q2SearchResults}
             />
           )}
           {dashboardKey === "q3" && (
             <Q3Map
-              key={`q3-map`}
+              key="q3-map"
               dashboardData={q3DashboardData}
               searchResults={q3SearchResults}
             />
           )}
           {dashboardKey === "q4" && (
             <Q4Map
-              key={`q4-map`}
+              key="q4-map"
               dashboardData={q4DashboardData}
               searchResults={q4SearchResults}
             />
