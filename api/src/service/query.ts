@@ -58,8 +58,6 @@ async function getQ1DashboardData(searchParams?: Partial<SearchParams>) {
     },
   };
 
-  console.log(merged);
-
   const years = merged.time.years;
   const variable = merged.intensity.variable;
   const order = merged.intensity.order;
