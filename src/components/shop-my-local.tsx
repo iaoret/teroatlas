@@ -133,9 +133,7 @@ export default function ShopByLocal(props: { searchKey: string }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => setIsOpen(!isOpen)}>
-      <DialogTitle className="sr-only">
-        Search by city, ward or ZIP Code
-      </DialogTitle>
+      <DialogTitle className="sr-only">Search by location</DialogTitle>
       <DialogTrigger className="bg-transparent p-0  outline-none hover:outline-none hover:border-none active:border-none">
         <Button className="w-auto">Shop My Local</Button>
       </DialogTrigger>
@@ -144,7 +142,7 @@ export default function ShopByLocal(props: { searchKey: string }) {
           <DialogDescription>
             <Input
               ref={inputSearchByLocalRef}
-              placeholder="Search by city, ward or ZIP Code"
+              placeholder="Search by city, neighborhood, or anywhere else..."
               value={searchLocal.search}
               onChange={handleSearchByLocal}
               autoFocus

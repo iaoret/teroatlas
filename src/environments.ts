@@ -9,6 +9,11 @@ const environment = {
     urlTiles: "https://tero-atlas-tiles.marotta.dev",
     urlRest: "https://tero-atlas-rest.marotta.dev",
   },
+  "teroatlas.ai": {
+    production: true,
+    urlTiles: "https://tiles.teroatlas.ai",
+    urlRest: "https://rest.teroatlas.ai",
+  },
 };
 
 export default environment[
