@@ -256,23 +256,6 @@ export default function EconomicData() {
         : 0) || 0) * 10000
     ) / 100;
 
-  // Helper to get the correct registry index for each dashboardKey
-  const getRegistryIndex = (key: string | undefined) => {
-    switch (key) {
-      case "q1":
-        return 0;
-      case "q2":
-        return 1;
-      case "q3":
-        return 2;
-      case "q4":
-        return 3;
-      default:
-        return undefined;
-    }
-  };
-  const registryIndex = getRegistryIndex(dashboardKey);
-
   // Assign registry components to variables for JSX usage
   const Q1Map = dashboardRegistry[0].MapComponent;
   const Q2Map = dashboardRegistry[1].MapComponent;
