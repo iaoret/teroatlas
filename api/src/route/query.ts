@@ -3,6 +3,6 @@ import queryController from "../controller/query";
 
 const router = Router();
 
-router.get("/", queryController);
+router.post("/", queryController);
 
 export default router;
