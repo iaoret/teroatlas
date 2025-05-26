@@ -6,6 +6,7 @@ import { initAdminUser } from "./service/user";
 import morgan from "morgan";
 import logger from "./logger";
 import dayjs from "dayjs";
+import cors from "cors";
 
 import authRoutes from "./route/auth";
 import queryRoutes from "./route/query";
@@ -14,6 +15,7 @@ const app = express();
 const port = process.env.PORT || 6435;
 
 app.use(express.json());
+app.use(cors());
 
 const morganFormat = (tokens, req, res) => {
   const timestamp = dayjs().format("YYYY-MM-DD HH:mm:ss");

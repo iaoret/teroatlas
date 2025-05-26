@@ -150,70 +150,32 @@ export const dashboardRegistry: [
       mapRef,
       searchResults,
     }) => {
-      async function fetchData() {
-        try {
-          const q1Totals = await fetch(
-            environment.urlRest +
-              `/rpc/get_total_emp_est_by_district_and_years?district_id=1&years_set={${searchResults.time.years.join(
-                ","
-              )}}`
-          ).then((res) => res.json());
-
-          const q1Top10BySubUnit = await fetch(
-            environment.urlRest +
-              `/rpc/get_top_10_zip_codes?district_id=1&years_set={${searchResults.time.years.join(
-                ","
-              )}}&variable=${
-                searchResults.intensity.variable
-              }&order_direction=${searchResults.intensity.order}`
-          ).then((res) => res.json());
-
-          const boundingBox = await fetch(
-            environment.urlRest + `/rpc/get_q1_extent`
-          ).then(async (res) => parseBox(await res.text()));
-
-          const choropleticData = await fetch(
-            environment.urlRest + `/rpc/get_min_max_emp_est`
-          ).then(async (res) => res.json());
-
-          const coverage = await fetch(
-            environment.urlRest +
-              `/rpc/q1_area_coverage_by_subunits?district_id=1`
-          ).then(async (res) => res.json());
-
-          setDashboardData({
-            q1Totals: q1Totals,
-            q1Top10BySubUnit: q1Top10BySubUnit,
-            boundingBox: boundingBox,
-            choroplethicData: {
-              minEmp: choropleticData[0].min_emp,
-              maxEmp: choropleticData[0].max_emp,
-              minEst: choropleticData[0].min_est,
-              maxEst: choropleticData[0].max_est,
-            },
-            chartInfo: "",
-            coverage: coverage,
-          });
-
-          return {
-            q1Totals: q1Totals,
-            q1Top10BySubUnit: q1Top10BySubUnit,
-            boundingBox: boundingBox,
-          };
-        } catch (error) {
-          console.error(error);
-        }
-      }
       setLoading(true);
       setIsSearching(false);
       setShowDashboard(true);
-      const data = await fetchData();
-      if (mapRef.current && data?.boundingBox) {
-        mapRef.current.ol.getView().fit(data?.boundingBox, {
-          size: mapRef.current.ol.getSize(),
-          duration: 1000,
-          padding: [50, 50, 50, 50],
+      try {
+        const response = await fetch(environment.urlAPI + "/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: "dc congressional district economic data",
+            searchParams: searchResults,
+          }),
         });
+        if (!response.ok) throw new Error("Failed to fetch dashboard data");
+        const result = await response.json();
+        setDashboardData(result.data);
+        if (mapRef.current && result.data?.boundingBox) {
+          mapRef.current.ol.getView().fit(result.data.boundingBox, {
+            size: mapRef.current.ol.getSize(),
+            duration: 1000,
+            padding: [50, 50, 50, 50],
+          });
+        }
+      } catch (error) {
+        console.error(error);
       }
       setLoading(false);
     },
