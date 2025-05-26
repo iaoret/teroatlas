@@ -1,0 +1,241 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tero Atlas API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:6435"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Endpoints related to user authentication and authorization."
+    },
+    {
+      "name": "Query",
+      "description": "Endpoints for dashboard and economic data queries."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "su": { "type": "boolean" }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "refreshToken": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new user (SU only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" },
+                  "su": { "type": "boolean" }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid input types" },
+          "409": { "description": "User exists" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login and get JWT tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid input types" },
+          "401": { "description": "Invalid credentials" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh JWT tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "400": { "description": "Missing or invalid refresh token" },
+          "403": { "description": "Invalid refresh token" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/query": {
+      "post": {
+        "tags": ["Query"],
+        "summary": "Query dashboard economic data",
+        "description": "Returns dashboard data for a given query and optional search parameters.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "dc congressional district economic data"
+                  },
+                  "searchParams": {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "object",
+                        "properties": {
+                          "years": {
+                            "type": "array",
+                            "items": { "type": "integer" },
+                            "example": [2019, 2020, 2021, 2022]
+                          }
+                        }
+                      },
+                      "intensity": {
+                        "type": "object",
+                        "properties": {
+                          "variable": {
+                            "type": "string",
+                            "enum": ["emp", "est"],
+                            "example": "emp"
+                          },
+                          "order": {
+                            "type": "string",
+                            "enum": ["asc", "desc"],
+                            "example": "asc"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": ["query"]
+              },
+              "example": {
+                "query": "dc congressional district economic data",
+                "searchParams": {
+                  "time": { "years": [2019, 2020, 2021, 2022] },
+                  "intensity": { "variable": "emp", "order": "asc" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dashboard data (response not yet standardized)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "dashboardKey": "q1",
+                  "data": {
+                    "q1Totals": [],
+                    "q1Top10BySubUnit": [],
+                    "boundingBox": {},
+                    "choroplethicData": {},
+                    "chartInfo": "",
+                    "coverage": 0.95
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or query"
+          }
+        }
+      }
+    }
+  }
+}
