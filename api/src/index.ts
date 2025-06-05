@@ -7,6 +7,7 @@ import morgan from "morgan";
 import logger from "./logger";
 import dayjs from "dayjs";
 import cors from "cors";
+import { loadSuggestions } from "./service/suggestions";
 
 import authRoutes from "./route/auth";
 import queryRoutes from "./route/query";
@@ -45,6 +46,7 @@ app.use((err, req, res, _next) => {
 
 connectDB()
   .then(initAdminUser)
+  .then(loadSuggestions)
   .then(() => {
     app.listen(port, () => {
       const timestamp = dayjs().format("YYYY-MM-DD HH:mm:ss");
