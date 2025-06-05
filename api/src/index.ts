@@ -10,6 +10,7 @@ import cors from "cors";
 
 import authRoutes from "./route/auth";
 import queryRoutes from "./route/query";
+import suggestionsRoutes from "./route/suggestions";
 
 const app = express();
 const port = process.env.PORT || 6435;
@@ -33,6 +34,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use("/auth", authRoutes);
 app.use("/query", queryRoutes);
+app.use("/suggestions", suggestionsRoutes);
 
 // Centralized error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

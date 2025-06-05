@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:6435"
+      "url": "https://api.teroatlas.ai"
     }
   ],
   "tags": [
@@ -17,6 +17,10 @@
     {
       "name": "Query",
       "description": "Endpoints for dashboard and economic data queries."
+    },
+    {
+      "name": "Suggestions",
+      "description": "Endpoints for search suggestions."
     }
   ],
   "components": {
@@ -42,6 +46,14 @@
           "token": { "type": "string" },
           "refreshToken": { "type": "string" }
         }
+      },
+      "SuggestionsResponse": {
+        "type": "array",
+        "items": { "type": "string" },
+        "example": [
+          "dc economic data congressional district",
+          "new york manufacturing economic data 1st congressional district"
+        ]
       }
     }
   },
@@ -233,6 +245,37 @@
           },
           "400": {
             "description": "Invalid input or query"
+          }
+        }
+      }
+    },
+    "/suggestions": {
+      "get": {
+        "tags": ["Suggestions"],
+        "summary": "Get search suggestions",
+        "description": "Returns an array of suggestion strings based on the query parameter.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "The search string to get suggestions for.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of suggestion strings",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuggestionsResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid 'query' parameter"
           }
         }
       }

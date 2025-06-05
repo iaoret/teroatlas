@@ -37,6 +37,7 @@ import DropdownExportData from "@/components/dropdown-export-data";
 import { DashboardTable } from "@/components/dashboard-table";
 import DashboardLineChart from "@/components/dashboard-line-chart";
 import { dashboardRegistry } from "./dashboard-registry";
+import environment from "@/environments";
 
 function getDashboardConfig(search: string) {
   const lower = search.toLowerCase();
@@ -185,56 +186,29 @@ export default function EconomicData() {
   ]);
 
   useEffect(() => {
-    const dashQ1Key = "dc economic data congressional district";
-    const dashQ2Key =
-      "new york manufacturing economic data 1st congressional district";
-    const dashQ3Key = "dc jobs per housing unit stats ward 1";
-    const dashQ4Key =
-      "nyc lowest gross income per full market value borough block";
-
-    if (dashQ1Key.includes(search) || search === "query 1") {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
-      setSearchSuggestions((prev) => [...prev, dashQ1Key]);
-    } else {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ1Key));
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
     }
-    if (dashQ2Key.includes(search) || search === "query 2") {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
-      setSearchSuggestions((prev) => [...prev, dashQ2Key]);
-    } else {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ2Key));
+    if (!search) {
+      setSearchSuggestions([]);
+      return;
     }
-    if (dashQ3Key.includes(search) || search === "query 3") {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
-      setSearchSuggestions((prev) => [...prev, dashQ3Key]);
-    } else {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ3Key));
-    }
-    if (dashQ4Key.includes(search) || search === "query 4") {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
-      setSearchSuggestions((prev) => [...prev, dashQ4Key]);
-    } else {
-      setSearchSuggestions((prev) => prev.filter((item) => item !== dashQ4Key));
-    }
-
-    const down = (e: KeyboardEvent) => {
-      if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setIsSearching((isSearching) => !isSearching);
-      }
-
-      if (e.key === "Escape" && isSearching) {
-        e.preventDefault();
-        clearSearch();
-      }
-
-      if (e.key === `Enter` && isSearching) {
-        buildDashboard();
-      }
-    };
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, [buildDashboard, dashboardKey, isSearching, search]);
+    setLoading(true);
+    debounceTimeout.current = setTimeout(() => {
+      fetch(
+        environment.urlAPI + `/suggestions?query=${encodeURIComponent(search)}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setSearchSuggestions(Array.isArray(data) ? data : []);
+          setLoading(false);
+        })
+        .catch(() => {
+          setSearchSuggestions([]);
+          setLoading(false);
+        });
+    }, 300);
+  }, [search]);
 
   const shouldShowSuggestions =
     search !== "" &&
