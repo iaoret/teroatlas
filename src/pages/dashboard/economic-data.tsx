@@ -40,8 +40,6 @@ import { DashboardTable } from "@/components/dashboard-table";
 import DashboardLineChart from "@/components/dashboard-line-chart";
 import { dashboardRegistry } from "./dashboard-registry";
 import environment from "@/environments";
-import Q6SearchMatrix from "@/components/q6-search-matrix";
-import Q6Dashboard from "@/components/q6-dashboard";
 
 function getDashboardConfig(search: string) {
   const lower = search.toLowerCase();
