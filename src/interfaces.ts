@@ -183,3 +183,47 @@ export interface Q4Data {
   perc_gross_income_as_full_market_value: number;
   number_of_obs: number;
 }
+
+export interface Q6SearchResults {
+  length: null;
+  time: null;
+  intensity: {
+    variable: string;
+    order: string;
+  };
+  breadth: null;
+}
+
+export interface Q6DashboardData {
+  q6BoundingBox: number[];
+  choroplethicData: {
+    maxEmp: number;
+    maxEst: number;
+    minEmp: number;
+    minEst: number;
+  };
+  q6Totals: Q6Totals;
+  q6Top10BySubUnit: Q6Top10BySubUnit[];
+  coverage: number;
+  chartInfo: {
+    title: string;
+    info: string;
+  };
+  mapInfo: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    zipCodes: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    congressionalDistricts: any;
+  };
+}
+
+export interface Q6Totals {
+  total_emp: number | null;
+  total_est: number | null;
+}
+
+export interface Q6Top10BySubUnit {
+  zip: number | null;
+  name: string | null;
+  total: number | null;
+}

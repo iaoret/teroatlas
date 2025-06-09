@@ -28,6 +28,8 @@ import {
   Q3DashboardData,
   Q4SearchResults,
   Q4DashboardData,
+  Q6DashboardData,
+  Q6SearchResults,
 } from "@/interfaces";
 import DashboardBarChart from "@/components/dashboard-bar-chart";
 import DashboardSkeleton from "@/components/dashboard-skeleton";
@@ -38,6 +40,8 @@ import { DashboardTable } from "@/components/dashboard-table";
 import DashboardLineChart from "@/components/dashboard-line-chart";
 import { dashboardRegistry } from "./dashboard-registry";
 import environment from "@/environments";
+import Q6SearchMatrix from "@/components/q6-search-matrix";
+import Q6Dashboard from "@/components/q6-dashboard";
 
 function getDashboardConfig(search: string) {
   const lower = search.toLowerCase();
@@ -88,6 +92,15 @@ export default function EconomicData() {
     },
     breadth: null,
   });
+  const [q6SearchResults, setQ6SearchResults] = useState<Q6SearchResults>({
+    length: null,
+    time: null,
+    intensity: {
+      variable: "emp",
+      order: "desc",
+    },
+    breadth: null,
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -103,6 +116,9 @@ export default function EconomicData() {
   >();
   const [q4DashboardData, setQ4DashboardData] = useState<
     Q4DashboardData | undefined
+  >();
+  const [q6DashboardData, setQ6DashboardData] = useState<
+    Q6DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -141,6 +157,7 @@ export default function EconomicData() {
     if (!dashboardKey) return;
     if (dashboardKey === "q1") {
       await dashboardRegistry[0].buildDashboard({
+        searchString: search,
         setLoading,
         setIsSearching,
         setShowDashboard,
@@ -150,6 +167,7 @@ export default function EconomicData() {
       });
     } else if (dashboardKey === "q2") {
       await dashboardRegistry[1].buildDashboard({
+        searchString: search,
         setLoading,
         setIsSearching,
         setShowDashboard,
@@ -159,6 +177,7 @@ export default function EconomicData() {
       });
     } else if (dashboardKey === "q3") {
       await dashboardRegistry[2].buildDashboard({
+        searchString: search,
         setLoading,
         setIsSearching,
         setShowDashboard,
@@ -168,12 +187,23 @@ export default function EconomicData() {
       });
     } else if (dashboardKey === "q4") {
       await dashboardRegistry[3].buildDashboard({
+        searchString: search,
         setLoading,
         setIsSearching,
         setShowDashboard,
         setDashboardData: setQ4DashboardData,
         mapRef,
         searchResults: q4SearchResults,
+      });
+    } else if (dashboardKey === "q6") {
+      await dashboardRegistry[4].buildDashboard({
+        searchString: search,
+        setLoading,
+        setIsSearching,
+        setShowDashboard,
+        setDashboardData: setQ6DashboardData,
+        mapRef,
+        searchResults: q6SearchResults,
       });
     }
   }, [
@@ -182,7 +212,8 @@ export default function EconomicData() {
     q2SearchResults,
     q3SearchResults,
     q4SearchResults,
-    mapRef,
+    q6SearchResults,
+    search,
   ]);
 
   useEffect(() => {
@@ -227,6 +258,8 @@ export default function EconomicData() {
         ? q3DashboardData?.coverage
         : dashboardKey === "q4"
         ? q4DashboardData?.coverage
+        : dashboardKey === "q6"
+        ? q6DashboardData?.coverage
         : 0) || 0) * 10000
     ) / 100;
 
@@ -235,14 +268,17 @@ export default function EconomicData() {
   const Q2Map = dashboardRegistry[1].MapComponent;
   const Q3Map = dashboardRegistry[2].MapComponent;
   const Q4Map = dashboardRegistry[3].MapComponent;
+  const Q6Map = dashboardRegistry[4].MapComponent;
   const Q1SearchMatrix = dashboardRegistry[0].SearchMatrixComponent;
   const Q2SearchMatrix = dashboardRegistry[1].SearchMatrixComponent;
   const Q3SearchMatrix = dashboardRegistry[2].SearchMatrixComponent;
   const Q4SearchMatrix = dashboardRegistry[3].SearchMatrixComponent;
+  const Q6SearchMatrix = dashboardRegistry[4].SearchMatrixComponent;
   const Q1Dashboard = dashboardRegistry[0].DashboardComponent;
   const Q2Dashboard = dashboardRegistry[1].DashboardComponent;
   const Q3Dashboard = dashboardRegistry[2].DashboardComponent;
   const Q4Dashboard = dashboardRegistry[3].DashboardComponent;
+  const Q6Dashboard = dashboardRegistry[4].DashboardComponent;
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -281,6 +317,13 @@ export default function EconomicData() {
             <Q4Map
               dashboardData={q4DashboardData}
               searchResults={q4SearchResults}
+            />
+          )}
+          {dashboardKey === "q6" && (
+            <Q6Map
+              dashboardData={q6DashboardData}
+              searchResults={q6SearchResults}
+              mapRef={mapRef}
             />
           )}
           <RControl.RCustom
@@ -338,7 +381,7 @@ export default function EconomicData() {
                       autoFocus
                       className="text-nowrap"
                     />
-                    <div className="w-full h-full">
+                    <div className="w-full h-full max-h-[200px] overflow-y-auto">
                       {shouldShowSuggestions &&
                         searchSuggestions.map((suggestion) => (
                           <div
@@ -385,6 +428,14 @@ export default function EconomicData() {
                       searchResults={q4SearchResults}
                     />
                   )}
+                  {dashboardKey === "q6" && (
+                    <Q6SearchMatrix
+                      buildDashboard={buildDashboard}
+                      searchString={search || ""}
+                      setSearchResults={setQ6SearchResults}
+                      searchResults={q6SearchResults}
+                    />
+                  )}
                   {!dashboardKey && dashboardKey && <></>}
                 </div>
               </DialogContent>
@@ -427,6 +478,13 @@ export default function EconomicData() {
               <Q4Dashboard
                 dashboardData={q4DashboardData}
                 searchResults={q4SearchResults}
+              />
+            )}
+
+            {showDashboard && q6DashboardData && dashboardKey === `q6` && (
+              <Q6Dashboard
+                dashboardData={q6DashboardData}
+                searchResults={q6SearchResults}
               />
             )}
 
@@ -490,6 +548,26 @@ export default function EconomicData() {
                 data={q4DashboardData.q4HistoricalData}
                 dataKeyXAxis="year"
                 dataKeyYAxis="perc_gross_income_as_full_market_value"
+              />
+            )}
+
+            {showDashboard && q6DashboardData && dashboardKey === `q6` && (
+              <DashboardBarChart
+                chartInfo={`Ordered by the
+              ${
+                q6SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
+              } value of
+              ${
+                q6SearchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                data={q6DashboardData.q6Top10BySubUnit}
+                dataKeyXAxis="zip"
+                dataKeyBar="total"
               />
             )}
 

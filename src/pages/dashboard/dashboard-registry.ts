@@ -21,9 +21,14 @@ import {
   Q3SearchResults,
   Q4DashboardData,
   Q4SearchResults,
+  Q6DashboardData,
+  Q6SearchResults,
 } from "@/interfaces";
 import { RefObject, Dispatch, SetStateAction, ComponentType } from "react";
 import { RMap } from "rlayers";
+import Q6Dashboard from "@/components/q6-dashboard";
+import Q6Map from "@/components/q6-map";
+import Q6SearchMatrix from "@/components/q6-search-matrix";
 
 // Define prop types for each dashboard/map/search matrix
 export type Q1DashboardProps = {
@@ -42,6 +47,10 @@ export type Q4DashboardProps = {
   dashboardData: Q4DashboardData;
   searchResults: Q4SearchResults;
 };
+export type Q6DashboardProps = {
+  dashboardData: Q6DashboardData;
+  searchResults: Q6SearchResults;
+};
 export type Q1MapProps = {
   dashboardData: Q1DashboardData | undefined;
   searchResults: Q1SearchResults;
@@ -57,6 +66,11 @@ export type Q3MapProps = {
 export type Q4MapProps = {
   dashboardData: Q4DashboardData | undefined;
   searchResults: Q4SearchResults;
+};
+export type Q6MapProps = {
+  dashboardData: Q6DashboardData | undefined;
+  searchResults: Q6SearchResults;
+  mapRef: RefObject<RMap>;
 };
 export type Q1SearchMatrixProps = {
   buildDashboard: () => void;
@@ -80,6 +94,12 @@ export type Q4SearchMatrixProps = {
   searchResults: Q4SearchResults;
   setSearchResults: Dispatch<SetStateAction<Q4SearchResults>>;
 };
+export type Q6SearchMatrixProps = {
+  buildDashboard: () => void;
+  searchString: string;
+  searchResults: Q6SearchResults;
+  setSearchResults: Dispatch<SetStateAction<Q6SearchResults>>;
+};
 
 export interface DashboardRegistryEntry<
   TDashboardData,
@@ -94,6 +114,7 @@ export interface DashboardRegistryEntry<
   MapComponent: ComponentType<TMapProps>;
   SearchMatrixComponent: ComponentType<TSearchMatrixProps>;
   buildDashboard: (args: {
+    searchString: string;
     setLoading: Dispatch<SetStateAction<boolean>>;
     setIsSearching: Dispatch<SetStateAction<boolean>>;
     setShowDashboard: Dispatch<SetStateAction<boolean>>;
@@ -131,6 +152,13 @@ export const dashboardRegistry: [
     Q4DashboardProps,
     Q4MapProps,
     Q4SearchMatrixProps
+  >,
+  DashboardRegistryEntry<
+    Q6DashboardData,
+    Q6SearchResults,
+    Q6DashboardProps,
+    Q6MapProps,
+    Q6SearchMatrixProps
   >
 ] = [
   {
@@ -143,6 +171,7 @@ export const dashboardRegistry: [
     MapComponent: Q1Map,
     SearchMatrixComponent: Q1SearchMatrix,
     buildDashboard: async ({
+      searchString,
       setLoading,
       setIsSearching,
       setShowDashboard,
@@ -160,7 +189,7 @@ export const dashboardRegistry: [
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            query: "dc congressional district economic data",
+            query: searchString,
             searchParams: searchResults,
           }),
         });
@@ -411,6 +440,53 @@ export const dashboardRegistry: [
           duration: 1000,
           padding: [50, 50, 50, 50],
         });
+      }
+      setLoading(false);
+    },
+  },
+  {
+    key: "q6",
+    match: (search: string) =>
+      search.toLowerCase().includes("economic data") &&
+      search.toLowerCase().includes("congressional district"),
+    DashboardComponent: Q6Dashboard,
+    MapComponent: Q6Map,
+    SearchMatrixComponent: Q6SearchMatrix,
+    buildDashboard: async ({
+      searchString,
+      setLoading,
+      setIsSearching,
+      setShowDashboard,
+      setDashboardData,
+      mapRef,
+      searchResults,
+    }) => {
+      setLoading(true);
+      setIsSearching(false);
+      setShowDashboard(true);
+      try {
+        const response = await fetch(environment.urlAPI + "/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: searchString,
+            searchParams: searchResults,
+          }),
+        });
+        if (!response.ok) throw new Error("Failed to fetch dashboard data");
+        const result = await response.json();
+        setDashboardData(result.data);
+        if (mapRef.current && result.data?.boundingBox) {
+          mapRef.current.ol.getView().fit(result.data.boundingBox, {
+            size: mapRef.current.ol.getSize(),
+            duration: 1000,
+            padding: [50, 50, 50, 50],
+          });
+        }
+      } catch (error) {
+        console.error(error);
       }
       setLoading(false);
     },

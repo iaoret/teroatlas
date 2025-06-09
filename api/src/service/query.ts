@@ -1,6 +1,8 @@
+import { usStates } from "../lib";
 import client from "./db";
 
 interface SearchParams {
+  queryKey: string;
   length?: null;
   time?: { years: number[] };
   intensity?: { variable: string; order: string };
@@ -9,15 +11,24 @@ interface SearchParams {
 
 // Helper for defaults
 const Q1_DEFAULTS: SearchParams = {
+  queryKey: "",
   length: null,
   time: { years: [2019, 2020, 2021, 2022] },
   intensity: { variable: "emp", order: "desc" },
   breadth: null,
 };
 
+const Q6_DEFAULTS: SearchParams = {
+  queryKey: "",
+  length: null,
+  time: null,
+  intensity: { variable: "emp", order: "desc" },
+  breadth: null,
+};
+
 function matchDashboardKey(
   query: string
-): "q1" | "q2" | "q3" | "q4" | undefined {
+): "q1" | "q2" | "q3" | "q4" | "q6" | undefined {
   const lower = query.toLowerCase();
   if (
     lower.includes("dc") &&
@@ -43,6 +54,13 @@ function matchDashboardKey(
     lower.includes("borough block")
   )
     return "q4";
+  if (
+    usStates.some((state) => lower.includes(state)) &&
+    lower.includes("economic data") &&
+    lower.includes("congressional district")
+  ) {
+    return "q6";
+  }
   return undefined;
 }
 
@@ -244,9 +262,256 @@ async function getQ4DashboardData() {
   };
 }
 
+const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
+  const merged = {
+    ...Q6_DEFAULTS,
+    ...searchParams,
+  };
+
+  const lowerQuery = merged.queryKey.toLowerCase();
+  const stateKeys = usStates.filter((state) => lowerQuery.includes(state));
+
+  const cdKey = merged.queryKey.split(" ").filter((e) => !isNaN(Number(e)));
+
+  const stateQuery = stateKeys
+    .map((key) => `state_name ILIKE '%${key}%' OR state_abbr ILIKE '%${key}%'`)
+    .join(" OR ");
+
+  const cdQuery =
+    cdKey.length === 0
+      ? `cd_name = 'Congressional District (at Large)'`
+      : cdKey
+          .map((e) => `cd_name = 'Congressional District ${e}'`)
+          .join(" OR ");
+
+  const queryQ6Totals = `
+    SELECT
+      sum(total_emp) as total_emp
+      , sum(total_est) as total_est
+      , ST_AsText(ST_Union(geom)) as geom
+      , string_agg(DISTINCT cd_name, ', ') || ' - ' || MAX(state_name) as chart_info_title
+      , sum(zip_count) as zip_count
+      , string_agg(DISTINCT zip_codes, ', ') as zip_codes
+      , string_agg(DISTINCT cd_geoid, ', ') as cd_geoids
+    FROM (
+      SELECT cd.id, s.*, cd.geom
+      FROM (
+        SELECT 
+          cd_geoid,
+          cd_name,
+          state_name,
+          state_geoid,
+          state_abbr,
+          sum(est) total_est,
+          sum(emp) total_emp,
+          count(1) as zip_count,
+          string_agg(DISTINCT zip::text, ', ') as zip_codes
+        FROM (
+          SELECT 
+            z.zip, 
+            z.emp, 
+            z.est, 
+            z.stabbr state_abbr, 
+            COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+            COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+            s."NAME" state_name,
+            s."GEOID" state_geoid
+          FROM public.q6_zbp22totals z
+          LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+            ON z.zip = zcd."GEOID_ZCTA5_20"
+          LEFT JOIN public.q6_cb_2018_us_state_500k s
+            ON s."STUSPS" = z.stabbr
+        ) s
+        GROUP BY cd_geoid, cd_name, state_name, state_geoid, state_abbr
+        ORDER BY state_name, cd_name
+      ) s
+      LEFT JOIN public.q6_us_congressional_districts_merged cd
+        ON cd."GEOID" = cd_geoid AND state_geoid = cd."STATEFP"
+      WHERE ST_IsValid(cd.geom) AND (${stateQuery}) AND (${cdQuery})
+    ) s
+      `;
+
+  const q6Totals = (await client.query(queryQ6Totals)).rows;
+
+  // Prepare zip code array for parameterized query
+  const zipCodesArr = q6Totals[0]?.zip_codes
+    ? q6Totals[0].zip_codes.split(",").map((z) => z.trim())
+    : [];
+
+  const queryQ6ZipCodes = `SELECT jsonb_build_object(
+      'type', 'FeatureCollection',
+      'features', jsonb_agg(
+        jsonb_build_object(
+          'type', 'Feature',
+          'geometry', ST_AsGeoJSON(zcta.geom)::jsonb,
+          'properties', jsonb_build_object('zip', zcta."ZCTA5CE20", 'emp', z.emp, 'est', z.est)
+        )
+      )
+    ) as geojson
+    FROM public.q6_tl_2024_us_zcta520 zcta
+    LEFT JOIN public.q6_zbp22totals z
+      ON z.zip::text = zcta."ZCTA5CE20"
+    WHERE zcta."ZCTA5CE20" = ANY($1)`;
+
+  const queryQ6CongressionalDistricts = `SELECT jsonb_build_object(
+    'type', 'FeatureCollection',
+    'features', jsonb_agg(
+      jsonb_build_object(
+        'type', 'Feature',
+        'geometry', ST_AsGeoJSON(cd.geom)::jsonb
+      )
+    )
+  ) as geojson
+  FROM public.q6_us_congressional_districts_merged cd
+  WHERE cd."GEOID" = ANY($1)`;
+
+  const cdGeoids = q6Totals[0]?.cd_geoids
+    ? q6Totals[0].cd_geoids.split(",").map((z) => z.trim())
+    : [];
+
+  const q6CongressionalDistricts =
+    stateKeys.length > 0
+      ? (await client.query(queryQ6CongressionalDistricts, [cdGeoids])).rows[0]
+          ?.geojson
+      : null;
+
+  const q6ZipCodes =
+    zipCodesArr.length > 0
+      ? (await client.query(queryQ6ZipCodes, [zipCodesArr])).rows[0]?.geojson
+      : null;
+
+  const queryQ6Top10BySubUnit = `
+    SELECT * FROM (
+      SELECT
+        z.zip, 
+        z.${searchParams.intensity.variable} total, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q6_zbp22totals z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+    ORDER BY total ${searchParams.intensity.order}
+    LIMIT 10
+  `;
+
+  const q6Top10BySubUnit = (await client.query(queryQ6Top10BySubUnit)).rows;
+
+  const q6Geom = q6Totals[0]?.geom;
+
+  const queryQ6BoundingBox = `
+    SELECT ST_AsText(ST_Envelope(ST_GeomFromText('${q6Geom}'))) as geom
+  `;
+
+  const q6BoundingBox = (await client.query(queryQ6BoundingBox)).rows[0]?.geom;
+
+  const queryQ6ChoroplethData = `
+    SELECT min(emp) as min_emp, max(emp) as max_emp, min(est) as min_est, max(est) as max_est FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q6_zbp22totals z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+  `;
+
+  const q6ChoroplethData = (await client.query(queryQ6ChoroplethData)).rows[0];
+
+  const queryQ6CoverageSubset = `
+    SELECT sum(${searchParams.intensity.variable}) as subset FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q6_zbp22totals z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+  `;
+
+  const queryQ6CoverageTotal = `
+    SELECT sum(${searchParams.intensity.variable}) as total FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q6_zbp22totals z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      ) s
+    WHERE (${stateQuery}) 
+  `;
+
+  const q6CoverageSubset = (await client.query(queryQ6CoverageSubset)).rows;
+  const q6CoverageTotal = (await client.query(queryQ6CoverageTotal)).rows;
+
+  const q6Coverage = q6CoverageSubset[0]?.subset / q6CoverageTotal[0]?.total;
+
+  return {
+    q6Totals: {
+      total_emp: q6Totals[0]?.total_emp,
+      total_est: q6Totals[0]?.total_est,
+    },
+    q6Top10BySubUnit,
+    q6BoundingBox,
+    choroplethicData: {
+      minEmp: q6ChoroplethData.min_emp,
+      maxEmp: q6ChoroplethData.max_emp,
+      minEst: q6ChoroplethData.min_est,
+      maxEst: q6ChoroplethData.max_est,
+    },
+    chartInfo: {
+      title: q6Totals[0]?.chart_info_title,
+      info: `Calculated using data from ${
+        q6Totals[0]?.zip_count
+      } ZIP Codes within target geography in the year of 2022, this represents ${(
+        q6Coverage * 100
+      ).toFixed(2)}% of the total target geography`,
+    },
+    mapInfo: {
+      zipCodes: q6ZipCodes,
+      congressionalDistricts: q6CongressionalDistricts,
+    },
+    coverage: q6Coverage,
+  };
+};
+
 const queryService = async (query: string, searchResults?: SearchParams) => {
   const dashboardKey = matchDashboardKey(query);
   if (!dashboardKey) throw new Error("No dashboard matches this query");
+
+  searchResults.queryKey = query;
 
   switch (dashboardKey) {
     case "q1":
@@ -257,6 +522,8 @@ const queryService = async (query: string, searchResults?: SearchParams) => {
       return { dashboardKey, data: await getQ3DashboardData() };
     case "q4":
       return { dashboardKey, data: await getQ4DashboardData() };
+    case "q6":
+      return { dashboardKey, data: await getQ6DashboardData(searchResults) };
     default:
       throw new Error("Unknown dashboard key");
   }
