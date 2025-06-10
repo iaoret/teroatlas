@@ -1,5 +1,6 @@
 import { usStates } from "../lib";
 import client from "./db";
+import logger from "../logger";
 
 interface SearchParams {
   queryKey: string;
@@ -290,95 +291,42 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
       , sum(total_est) as total_est
       , ST_AsText(ST_Union(geom)) as geom
       , string_agg(DISTINCT cd_name, ', ') || ' - ' || MAX(state_name) as chart_info_title
-      , sum(zip_count) as zip_count
-      , string_agg(DISTINCT zip_codes, ', ') as zip_codes
-      , string_agg(DISTINCT cd_geoid, ', ') as cd_geoids
+      , jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(cd_geom)::jsonb
+          )
+        )
+      ) as cd_geojson
+      , jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', (
+          SELECT jsonb_agg(feature)
+          FROM (
+            SELECT jsonb_array_elements(zip_geom->'features') as feature
+            FROM q6_cd_economic_data
+            WHERE (${stateQuery}) AND (${cdQuery})
+          ) features
+        )
+      ) as zip_geojson
     FROM (
-      SELECT cd.id, s.*, cd.geom
+      SELECT cd.id, s.*, cd.geom as cd_geom
       FROM (
-        SELECT 
-          cd_geoid,
-          cd_name,
-          state_name,
-          state_geoid,
-          state_abbr,
-          sum(est) total_est,
-          sum(emp) total_emp,
-          count(1) as zip_count,
-          string_agg(DISTINCT zip::text, ', ') as zip_codes
-        FROM (
-          SELECT 
-            z.zip, 
-            z.emp, 
-            z.est, 
-            z.stabbr state_abbr, 
-            COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
-            COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
-            s."NAME" state_name,
-            s."GEOID" state_geoid
-          FROM public.q6_zbp22totals z
-          LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
-            ON z.zip = zcd."GEOID_ZCTA5_20"
-          LEFT JOIN public.q6_cb_2018_us_state_500k s
-            ON s."STUSPS" = z.stabbr
-        ) s
-        GROUP BY cd_geoid, cd_name, state_name, state_geoid, state_abbr
-        ORDER BY state_name, cd_name
+        SELECT * 
+        FROM q6_cd_economic_data 
+        WHERE (${stateQuery}) AND (${cdQuery})
       ) s
       LEFT JOIN public.q6_us_congressional_districts_merged cd
         ON cd."GEOID" = cd_geoid AND state_geoid = cd."STATEFP"
-      WHERE ST_IsValid(cd.geom) AND (${stateQuery}) AND (${cdQuery})
+      WHERE ST_IsValid(cd.geom)
     ) s
-      `;
+  `;
 
+  const startQ6Totals = Date.now();
   const q6Totals = (await client.query(queryQ6Totals)).rows;
-
-  // Prepare zip code array for parameterized query
-  const zipCodesArr = q6Totals[0]?.zip_codes
-    ? q6Totals[0].zip_codes.split(",").map((z) => z.trim())
-    : [];
-
-  const queryQ6ZipCodes = `SELECT jsonb_build_object(
-      'type', 'FeatureCollection',
-      'features', jsonb_agg(
-        jsonb_build_object(
-          'type', 'Feature',
-          'geometry', ST_AsGeoJSON(zcta.geom)::jsonb,
-          'properties', jsonb_build_object('zip', zcta."ZCTA5CE20", 'emp', z.emp, 'est', z.est)
-        )
-      )
-    ) as geojson
-    FROM public.q6_tl_2024_us_zcta520 zcta
-    LEFT JOIN public.q6_zbp22totals z
-      ON z.zip::text = zcta."ZCTA5CE20"
-    WHERE zcta."ZCTA5CE20"::integer = ANY($1)`;
-
-  const queryQ6CongressionalDistricts = `SELECT jsonb_build_object(
-    'type', 'FeatureCollection',
-    'features', jsonb_agg(
-      jsonb_build_object(
-        'type', 'Feature',
-        'geometry', ST_AsGeoJSON(cd.geom)::jsonb
-      )
-    )
-  ) as geojson
-  FROM public.q6_us_congressional_districts_merged cd
-  WHERE cd."GEOID" = ANY($1)`;
-
-  const cdGeoids = q6Totals[0]?.cd_geoids
-    ? q6Totals[0].cd_geoids.split(",").map((z) => z.trim())
-    : [];
-
-  const q6CongressionalDistricts =
-    stateKeys.length > 0
-      ? (await client.query(queryQ6CongressionalDistricts, [cdGeoids])).rows[0]
-          ?.geojson
-      : null;
-
-  const q6ZipCodes =
-    zipCodesArr.length > 0
-      ? (await client.query(queryQ6ZipCodes, [zipCodesArr])).rows[0]?.geojson
-      : null;
+  logger.info(`query6Totals took ${Date.now() - startQ6Totals}ms`);
 
   const queryQ6Top10BySubUnit = `
     SELECT * FROM (
@@ -401,7 +349,11 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
     LIMIT 10
   `;
 
+  const startQ6Top10BySubUnit = Date.now();
   const q6Top10BySubUnit = (await client.query(queryQ6Top10BySubUnit)).rows;
+  logger.info(
+    `query6Top10BySubUnit took ${Date.now() - startQ6Top10BySubUnit}ms`
+  );
 
   const q6Geom = q6Totals[0]?.geom;
 
@@ -409,7 +361,9 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
     SELECT ST_AsText(ST_Envelope(ST_GeomFromText('${q6Geom}'))) as geom
   `;
 
+  const startQ6BoundingBox = Date.now();
   const q6BoundingBox = (await client.query(queryQ6BoundingBox)).rows[0]?.geom;
+  logger.info(`query6BoundingBox took ${Date.now() - startQ6BoundingBox}ms`);
 
   const queryQ6ChoroplethData = `
     SELECT min(emp) as min_emp, max(emp) as max_emp, min(est) as min_est, max(est) as max_est FROM (
@@ -431,7 +385,11 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
     WHERE (${stateQuery}) AND (${cdQuery})
   `;
 
+  const startQ6ChoroplethData = Date.now();
   const q6ChoroplethData = (await client.query(queryQ6ChoroplethData)).rows[0];
+  logger.info(
+    `query6ChoroplethData took ${Date.now() - startQ6ChoroplethData}ms`
+  );
 
   const queryQ6CoverageSubset = `
     SELECT sum(${searchParams.intensity.variable}) as subset FROM (
@@ -473,8 +431,10 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
     WHERE (${stateQuery}) 
   `;
 
+  const startQ6Coverage = Date.now();
   const q6CoverageSubset = (await client.query(queryQ6CoverageSubset)).rows;
   const q6CoverageTotal = (await client.query(queryQ6CoverageTotal)).rows;
+  logger.info(`query6Coverage took ${Date.now() - startQ6Coverage}ms`);
 
   const q6Coverage = q6CoverageSubset[0]?.subset / q6CoverageTotal[0]?.total;
 
@@ -500,8 +460,8 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
       ).toFixed(2)}% of the total target geography`,
     },
     mapInfo: {
-      zipCodes: q6ZipCodes,
-      congressionalDistricts: q6CongressionalDistricts,
+      zipCodes: q6Totals[0]?.zip_geojson,
+      congressionalDistricts: q6Totals[0]?.cd_geojson,
     },
     coverage: q6Coverage,
   };
