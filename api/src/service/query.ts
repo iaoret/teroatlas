@@ -351,7 +351,7 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
     FROM public.q6_tl_2024_us_zcta520 zcta
     LEFT JOIN public.q6_zbp22totals z
       ON z.zip::text = zcta."ZCTA5CE20"
-    WHERE zcta."ZCTA5CE20" = ANY($1)`;
+    WHERE zcta."ZCTA5CE20"::integer = ANY($1)`;
 
   const queryQ6CongressionalDistricts = `SELECT jsonb_build_object(
     'type', 'FeatureCollection',
