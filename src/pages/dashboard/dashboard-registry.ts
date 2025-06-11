@@ -23,12 +23,17 @@ import {
   Q4SearchResults,
   Q6DashboardData,
   Q6SearchResults,
+  Q7DashboardData,
+  Q7SearchResults,
 } from "@/interfaces";
 import { RefObject, Dispatch, SetStateAction, ComponentType } from "react";
 import { RMap } from "rlayers";
 import Q6Dashboard from "@/components/q6-dashboard";
 import Q6Map from "@/components/q6-map";
 import Q6SearchMatrix from "@/components/q6-search-matrix";
+import Q7SearchMatrix from "@/components/q7-search-matrix";
+import Q7Dashboard from "@/components/q7-dashboard";
+import Q7Map from "@/components/q7-map";
 
 // Define prop types for each dashboard/map/search matrix
 export type Q1DashboardProps = {
@@ -51,6 +56,10 @@ export type Q6DashboardProps = {
   dashboardData: Q6DashboardData;
   searchResults: Q6SearchResults;
 };
+export type Q7DashboardProps = {
+  dashboardData: Q7DashboardData;
+  searchResults: Q7SearchResults;
+};
 export type Q1MapProps = {
   dashboardData: Q1DashboardData | undefined;
   searchResults: Q1SearchResults;
@@ -70,6 +79,11 @@ export type Q4MapProps = {
 export type Q6MapProps = {
   dashboardData: Q6DashboardData | undefined;
   searchResults: Q6SearchResults;
+  mapRef: RefObject<RMap>;
+};
+export type Q7MapProps = {
+  dashboardData: Q7DashboardData | undefined;
+  searchResults: Q7SearchResults;
   mapRef: RefObject<RMap>;
 };
 export type Q1SearchMatrixProps = {
@@ -99,6 +113,11 @@ export type Q6SearchMatrixProps = {
   searchString: string;
   searchResults: Q6SearchResults;
   setSearchResults: Dispatch<SetStateAction<Q6SearchResults>>;
+};
+export type Q7SearchMatrixProps = {
+  buildDashboard: () => void;
+  searchResults: Q7SearchResults;
+  setSearchResults: Dispatch<SetStateAction<Q7SearchResults>>;
 };
 
 export interface DashboardRegistryEntry<
@@ -159,6 +178,13 @@ export const dashboardRegistry: [
     Q6DashboardProps,
     Q6MapProps,
     Q6SearchMatrixProps
+  >,
+  DashboardRegistryEntry<
+    Q7DashboardData,
+    Q7SearchResults,
+    Q7DashboardProps,
+    Q7MapProps,
+    Q7SearchMatrixProps
   >
 ] = [
   {
@@ -213,7 +239,7 @@ export const dashboardRegistry: [
     key: "q2",
     match: (search: string) =>
       search.includes("new york") &&
-      search.includes("manufacturing economic data") &&
+      search.includes("manufacturing data") &&
       search.includes("1st congressional district"),
     DashboardComponent: Q2Dashboard,
     MapComponent: Q2Map,
@@ -485,6 +511,45 @@ export const dashboardRegistry: [
             padding: [50, 50, 50, 50],
           });
         }
+      } catch (error) {
+        console.error(error);
+      }
+      setLoading(false);
+    },
+  },
+  {
+    key: "q7",
+    match: (search: string) =>
+      search.toLowerCase().includes("manufacturing data") &&
+      search.toLowerCase().includes("congressional district"),
+    DashboardComponent: Q7Dashboard,
+    MapComponent: Q7Map,
+    SearchMatrixComponent: Q7SearchMatrix,
+    buildDashboard: async ({
+      searchString,
+      setLoading,
+      setIsSearching,
+      setShowDashboard,
+      setDashboardData,
+      searchResults,
+    }) => {
+      setLoading(true);
+      setIsSearching(false);
+      setShowDashboard(true);
+      try {
+        const response = await fetch(environment.urlAPI + "/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: searchString,
+            searchParams: searchResults,
+          }),
+        });
+        if (!response.ok) throw new Error("Failed to fetch dashboard data");
+        const result = await response.json();
+        setDashboardData(result.data);
       } catch (error) {
         console.error(error);
       }

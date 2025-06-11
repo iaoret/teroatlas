@@ -227,3 +227,51 @@ export interface Q6Top10BySubUnit {
   name: string | null;
   total: number | null;
 }
+
+
+export interface Q7SearchResults {
+  length: null;
+  time: null;
+  intensity: {
+    variable: string;
+    order: string;
+  };
+  breadth: {
+    naics: string;
+  };
+}
+
+export interface Q7Totals {
+  total_emp: number | null;
+  total_est: number | null;
+}
+
+export interface Q7Top10BySubUnit {
+  zip: number | null;
+  name: string | null;
+  total: number | null;
+}
+
+export interface Q7DashboardData {
+  boundingBox: number[];
+  choroplethicData: {
+    maxEmp: number;
+    maxEst: number;
+    minEmp: number;
+    minEst: number;
+  };
+  q7Totals: Q7Totals;
+  q7Top10BySubUnit: Q7Top10BySubUnit[];
+  q7BoundingBox: number[];
+  coverage: number;
+  chartInfo: {
+    title: string;
+    info: string;
+  };
+  mapInfo: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    zipCodes: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    congressionalDistricts: any;
+  };
+}

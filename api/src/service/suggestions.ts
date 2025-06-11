@@ -21,7 +21,8 @@ const suggestionCache: SuggestionCache = {
 export async function loadSuggestions() {
   // Example: load dynamic suggestions from DB (was Q6)
   const query = `SELECT 
-    state_name || ' ' || cd_name || ' economic data' suggestions
+    state_name || ' ' || cd_name || ' economic data' q6_suggestions
+    , state_name || ' ' || cd_name || ' manufacturing data' q7_suggestions
   FROM (
     SELECT 
     z.zip, 
@@ -43,9 +44,10 @@ export async function loadSuggestions() {
   ORDER BY state_name, cd_name`;
 
   const suggestions = await client.query(query);
-  suggestionCache.dynamic = suggestions.rows.map((e) =>
-    e.suggestions.toLowerCase()
-  );
+  suggestions.rows.map((e) => {
+    suggestionCache.dynamic.push(e.q6_suggestions.toLowerCase());
+    suggestionCache.dynamic.push(e.q7_suggestions.toLowerCase());
+  });
 }
 
 function getSuggestions(query: string): string[] {

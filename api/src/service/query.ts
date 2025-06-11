@@ -7,7 +7,9 @@ interface SearchParams {
   length?: null;
   time?: { years: number[] };
   intensity?: { variable: string; order: string };
-  breadth?: null;
+  breadth?: {
+    naics?: string;
+  };
 }
 
 // Helper for defaults
@@ -27,9 +29,19 @@ const Q6_DEFAULTS: SearchParams = {
   breadth: null,
 };
 
+const Q7_DEFAULTS: SearchParams = {
+  queryKey: "",
+  length: null,
+  time: null,
+  intensity: { variable: "emp", order: "desc" },
+  breadth: {
+    naics: "31---",
+  },
+};
+
 function matchDashboardKey(
   query: string
-): "q1" | "q2" | "q3" | "q4" | "q6" | undefined {
+): "q1" | "q2" | "q3" | "q4" | "q6" | "q7" | undefined {
   const lower = query.toLowerCase();
   if (
     lower.includes("dc") &&
@@ -39,7 +51,7 @@ function matchDashboardKey(
     return "q1";
   if (
     lower.includes("new york") &&
-    lower.includes("manufacturing economic data") &&
+    lower.includes("manufacturing data") &&
     lower.includes("1st congressional district")
   )
     return "q2";
@@ -61,6 +73,13 @@ function matchDashboardKey(
     lower.includes("congressional district")
   ) {
     return "q6";
+  }
+  if (
+    usStates.some((state) => lower.includes(state)) &&
+    lower.includes("manufacturing data") &&
+    lower.includes("congressional district")
+  ) {
+    return "q7";
   }
   return undefined;
 }
@@ -285,6 +304,21 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
           .map((e) => `cd_name = 'Congressional District ${e}'`)
           .join(" OR ");
 
+  // CREATE TABLE IF NOT EXISTS public.q6_cd_economic_data
+  // (
+  //     id bigint,
+  //     cd_geoid character varying COLLATE pg_catalog."default",
+  //     cd_name character varying COLLATE pg_catalog."default",
+  //     state_name character varying(100) COLLATE pg_catalog."default",
+  //     state_geoid character varying(2) COLLATE pg_catalog."default",
+  //     state_abbr character varying COLLATE pg_catalog."default",
+  //     total_est bigint,
+  //     total_emp bigint,
+  //     zip_count bigint,
+  //     zip_geom jsonb,
+  //     geom geometry(MultiPolygon,4269)
+  // )
+
   const queryQ6Totals = `
     SELECT
       sum(total_emp) as total_emp
@@ -467,6 +501,227 @@ const getQ6DashboardData = async (searchParams?: Partial<SearchParams>) => {
   };
 };
 
+const getQ7DashboardData = async (searchParams?: Partial<SearchParams>) => {
+  const merged = {
+    ...Q7_DEFAULTS,
+    ...searchParams,
+  };
+
+  const lowerQuery = merged.queryKey.toLowerCase();
+  const stateKeys = usStates.filter((state) => lowerQuery.includes(state));
+
+  const cdKey = merged.queryKey.split(" ").filter((e) => !isNaN(Number(e)));
+
+  const stateQuery = stateKeys
+    .map((key) => `state_name ILIKE '%${key}%' OR state_abbr ILIKE '%${key}%'`)
+    .join(" OR ");
+
+  const cdQuery =
+    cdKey.length === 0
+      ? `cd_name = 'Congressional District (at Large)'`
+      : cdKey
+          .map((e) => `cd_name = 'Congressional District ${e}'`)
+          .join(" OR ");
+
+  const queryQ7Totals = `
+    SELECT
+      sum(total_emp) as total_emp
+      , sum(total_est) as total_est
+      , (
+          SELECT count(1)
+          FROM jsonb_array_elements(
+            (
+              SELECT zip_geom->'features'
+              FROM q7_cd_economic_data
+              WHERE (${stateQuery}) AND (${cdQuery}) AND naics LIKE '%${merged.breadth.naics}%'
+              LIMIT 1
+            )
+          )
+        ) as zip_count
+      , ST_AsText(ST_Union(geom)) as geom
+      , string_agg(DISTINCT cd_name, ', ') || ' - ' || MAX(state_name) as chart_info_title
+      , jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(cd_geom)::jsonb
+          )
+        )
+      ) as cd_geojson
+      , jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', (
+          SELECT jsonb_agg(feature)
+          FROM (
+            SELECT jsonb_array_elements(zip_geom->'features') as feature
+            FROM q7_cd_economic_data
+            WHERE (${stateQuery}) AND (${cdQuery}) AND naics LIKE '%${merged.breadth.naics}%'
+          ) features
+        )
+      ) as zip_geojson
+    FROM (
+      SELECT cd.id, s.*, cd.geom as cd_geom
+      FROM (
+        SELECT * 
+        FROM q7_cd_economic_data 
+        WHERE (${stateQuery}) AND (${cdQuery}) AND naics LIKE '%${merged.breadth.naics}%'
+      ) s
+      LEFT JOIN public.q6_us_congressional_districts_merged cd
+        ON cd."GEOID" = cd_geoid AND state_geoid = cd."STATEFP"
+      WHERE ST_IsValid(cd.geom)
+    ) s
+  `;
+
+  const startQ7Totals = Date.now();
+  const q7Totals = (await client.query(queryQ7Totals)).rows;
+  logger.info(`query7Totals took ${Date.now() - startQ7Totals}ms`);
+
+  const queryQ7Top10BySubUnit = `
+    SELECT * FROM (
+      SELECT
+        z.zip, 
+        z.${searchParams.intensity.variable} total, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q7_zbp22detail z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      WHERE z.naics LIKE '%${merged.breadth.naics}%'
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+    ORDER BY total ${searchParams.intensity.order}
+    LIMIT 10
+  `;
+
+  const startQ7Top10BySubUnit = Date.now();
+  const q7Top10BySubUnit = (await client.query(queryQ7Top10BySubUnit)).rows;
+  logger.info(
+    `query7Top10BySubUnit took ${Date.now() - startQ7Top10BySubUnit}ms`
+  );
+
+  const q7Geom = q7Totals[0]?.geom;
+
+  const queryQ7BoundingBox = `
+    SELECT ST_AsText(ST_Envelope(ST_GeomFromText('${q7Geom}'))) as geom
+  `;
+
+  const startQ7BoundingBox = Date.now();
+  const q7BoundingBox = q7Geom
+    ? (await client.query(queryQ7BoundingBox)).rows[0]?.geom
+    : null;
+  logger.info(`query7BoundingBox took ${Date.now() - startQ7BoundingBox}ms`);
+
+  const queryQ7ChoroplethData = `
+    SELECT min(emp) as min_emp, max(emp) as max_emp, min(est) as min_est, max(est) as max_est FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q7_zbp22detail z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      WHERE z.naics LIKE '%${merged.breadth.naics}%'
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+  `;
+
+  const startQ7ChoroplethData = Date.now();
+  const q7ChoroplethData = (await client.query(queryQ7ChoroplethData)).rows[0];
+  logger.info(
+    `query7ChoroplethData took ${Date.now() - startQ7ChoroplethData}ms`
+  );
+
+  const queryQ7CoverageSubset = `
+    SELECT sum(${searchParams.intensity.variable}) as subset FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q7_zbp22detail z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      WHERE z.naics LIKE '%${merged.breadth.naics}%'
+      ) s
+    WHERE (${stateQuery}) AND (${cdQuery})
+  `;
+
+  const queryQ7CoverageTotal = `
+    SELECT sum(${searchParams.intensity.variable}) as total FROM (
+      SELECT
+        z.zip, 
+        z.emp, 
+        z.est, 
+        z.stabbr state_abbr, 
+        COALESCE(zcd."NAMELSAD_CD118_20", 'Unidentified') cd_name, 
+        COALESCE("GEOID_CD118_20", '9999') cd_geoid, 
+        s."NAME" state_name,
+        s."GEOID" state_geoid
+      FROM public.q7_zbp22detail z
+      LEFT JOIN public.q6_zip_code_to_congressional_district zcd 
+        ON z.zip = zcd."GEOID_ZCTA5_20"
+      LEFT JOIN public.q6_cb_2018_us_state_500k s
+        ON s."STUSPS" = z.stabbr
+      WHERE z.naics LIKE '%${merged.breadth.naics}%'
+      ) s
+    WHERE (${stateQuery}) 
+  `;
+
+  const startQ7Coverage = Date.now();
+  const q7CoverageSubset = (await client.query(queryQ7CoverageSubset)).rows;
+  const q7CoverageTotal = (await client.query(queryQ7CoverageTotal)).rows;
+  logger.info(`query7Coverage took ${Date.now() - startQ7Coverage}ms`);
+
+  const q7Coverage = q7CoverageSubset[0]?.subset / q7CoverageTotal[0]?.total;
+
+  return {
+    q7Totals: {
+      total_emp: q7Totals[0]?.total_emp,
+      total_est: q7Totals[0]?.total_est,
+    },
+    q7Top10BySubUnit,
+    q7BoundingBox,
+    choroplethicData: {
+      minEmp: q7ChoroplethData.min_emp,
+      maxEmp: q7ChoroplethData.max_emp,
+      minEst: q7ChoroplethData.min_est,
+      maxEst: q7ChoroplethData.max_est,
+    },
+    chartInfo: {
+      title: q7Totals[0]?.chart_info_title,
+      info: `Calculated using data from ${
+        q7Totals[0]?.zip_count
+      } ZIP Codes within target geography in the year of 2022, this represents ${(
+        q7Coverage * 100
+      ).toFixed(2)}% of the total target geography`,
+    },
+    mapInfo: {
+      zipCodes: q7Totals[0]?.zip_geojson,
+      congressionalDistricts: q7Totals[0]?.cd_geojson,
+    },
+    coverage: q7Coverage,
+  };
+};
+
 const queryService = async (query: string, searchResults?: SearchParams) => {
   const dashboardKey = matchDashboardKey(query);
   if (!dashboardKey) throw new Error("No dashboard matches this query");
@@ -484,6 +739,8 @@ const queryService = async (query: string, searchResults?: SearchParams) => {
       return { dashboardKey, data: await getQ4DashboardData() };
     case "q6":
       return { dashboardKey, data: await getQ6DashboardData(searchResults) };
+    case "q7":
+      return { dashboardKey, data: await getQ7DashboardData(searchResults) };
     default:
       throw new Error("Unknown dashboard key");
   }

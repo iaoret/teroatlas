@@ -30,6 +30,8 @@ import {
   Q4DashboardData,
   Q6DashboardData,
   Q6SearchResults,
+  Q7DashboardData,
+  Q7SearchResults,
 } from "@/interfaces";
 import DashboardBarChart from "@/components/dashboard-bar-chart";
 import DashboardSkeleton from "@/components/dashboard-skeleton";
@@ -99,6 +101,17 @@ export default function EconomicData() {
     },
     breadth: null,
   });
+  const [q7SearchResults, setQ7SearchResults] = useState<Q7SearchResults>({
+    length: null,
+    time: null,
+    intensity: {
+      variable: "emp",
+      order: "desc",
+    },
+    breadth: {
+      naics: "31---",
+    },
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -117,6 +130,9 @@ export default function EconomicData() {
   >();
   const [q6DashboardData, setQ6DashboardData] = useState<
     Q6DashboardData | undefined
+  >();
+  const [q7DashboardData, setQ7DashboardData] = useState<
+    Q7DashboardData | undefined
   >();
 
   const navigate = useNavigate();
@@ -142,6 +158,10 @@ export default function EconomicData() {
     setIsSearching(false);
     setQ1DashboardData(undefined);
     setQ2DashboardData(undefined);
+    setQ3DashboardData(undefined);
+    setQ4DashboardData(undefined);
+    setQ6DashboardData(undefined);
+    setQ7DashboardData(undefined);
   }
 
   function handleGoBack() {
@@ -203,6 +223,16 @@ export default function EconomicData() {
         mapRef,
         searchResults: q6SearchResults,
       });
+    } else if (dashboardKey === "q7") {
+      await dashboardRegistry[5].buildDashboard({
+        searchString: search,
+        setLoading,
+        setIsSearching,
+        setShowDashboard,
+        setDashboardData: setQ7DashboardData,
+        mapRef,
+        searchResults: q7SearchResults,
+      });
     }
   }, [
     dashboardKey,
@@ -211,6 +241,7 @@ export default function EconomicData() {
     q3SearchResults,
     q4SearchResults,
     q6SearchResults,
+    q7SearchResults,
     search,
   ]);
 
@@ -258,6 +289,8 @@ export default function EconomicData() {
         ? q4DashboardData?.coverage
         : dashboardKey === "q6"
         ? q6DashboardData?.coverage
+        : dashboardKey === "q7"
+        ? q7DashboardData?.coverage
         : 0) || 0) * 10000
     ) / 100;
 
@@ -267,16 +300,19 @@ export default function EconomicData() {
   const Q3Map = dashboardRegistry[2].MapComponent;
   const Q4Map = dashboardRegistry[3].MapComponent;
   const Q6Map = dashboardRegistry[4].MapComponent;
+  const Q7Map = dashboardRegistry[5].MapComponent;
   const Q1SearchMatrix = dashboardRegistry[0].SearchMatrixComponent;
   const Q2SearchMatrix = dashboardRegistry[1].SearchMatrixComponent;
   const Q3SearchMatrix = dashboardRegistry[2].SearchMatrixComponent;
   const Q4SearchMatrix = dashboardRegistry[3].SearchMatrixComponent;
   const Q6SearchMatrix = dashboardRegistry[4].SearchMatrixComponent;
+  const Q7SearchMatrix = dashboardRegistry[5].SearchMatrixComponent;
   const Q1Dashboard = dashboardRegistry[0].DashboardComponent;
   const Q2Dashboard = dashboardRegistry[1].DashboardComponent;
   const Q3Dashboard = dashboardRegistry[2].DashboardComponent;
   const Q4Dashboard = dashboardRegistry[3].DashboardComponent;
   const Q6Dashboard = dashboardRegistry[4].DashboardComponent;
+  const Q7Dashboard = dashboardRegistry[5].DashboardComponent;
 
   return (
     <div className="flex flex-row w-[100vw] min-h-full">
@@ -321,6 +357,13 @@ export default function EconomicData() {
             <Q6Map
               dashboardData={q6DashboardData}
               searchResults={q6SearchResults}
+              mapRef={mapRef}
+            />
+          )}
+          {dashboardKey === "q7" && (
+            <Q7Map
+              dashboardData={q7DashboardData}
+              searchResults={q7SearchResults}
               mapRef={mapRef}
             />
           )}
@@ -434,6 +477,13 @@ export default function EconomicData() {
                       searchResults={q6SearchResults}
                     />
                   )}
+                  {dashboardKey === "q7" && (
+                    <Q7SearchMatrix
+                      buildDashboard={buildDashboard}
+                      setSearchResults={setQ7SearchResults}
+                      searchResults={q7SearchResults}
+                    />
+                  )}
                   {!dashboardKey && dashboardKey && <></>}
                 </div>
               </DialogContent>
@@ -486,6 +536,12 @@ export default function EconomicData() {
               />
             )}
 
+            {showDashboard && q7DashboardData && dashboardKey === `q7` && (
+              <Q7Dashboard
+                dashboardData={q7DashboardData}
+                searchResults={q7SearchResults}
+              />
+            )}
             <Separator className="mt-4 mb-4" />
 
             <div className={"w-full flex flex-col items-center justify-center"}>
@@ -568,6 +624,29 @@ export default function EconomicData() {
                 dataKeyBar="total"
               />
             )}
+
+            {showDashboard &&
+              q7DashboardData &&
+              q7DashboardData.q7BoundingBox &&
+              dashboardKey === `q7` && (
+                <DashboardBarChart
+                  chartInfo={`Ordered by the
+              ${
+                q2SearchResults.intensity.order === "desc"
+                  ? "highest"
+                  : "lowest"
+              } value of
+              ${
+                q2SearchResults.intensity.variable === "est"
+                  ? "establishments"
+                  : "employees"
+              }
+              `}
+                  data={q7DashboardData.q7Top10BySubUnit}
+                  dataKeyXAxis="zip"
+                  dataKeyBar="total"
+                />
+              )}
 
             <Separator className="mt-4 mb-4" />
 
