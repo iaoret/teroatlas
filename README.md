@@ -19,7 +19,7 @@ To run the app you will need to have Docker and Docker Compose installed. The ea
 
 ### Downloading the database image
 
-Tero Atlas uses a PostGIS database with pre-built queries to showcase the use of the system. The database can be downloaded on this link: [Tero Atlas Database](https://1drv.ms/u/s!AuKYaGBxmghfqppxI3a_HzR09U0gzw?e=kiy0SC).
+Tero Atlas uses a PostGIS database with pre-built queries to showcase the use of the system. The database can be downloaded on this link: [Tero Atlas Database](https://teroai.s3.us-east-2.amazonaws.com/20250610_q7_tai).
 
 After downloaded, you will need to store the `.backup` file in the `db_image` folder of the Tero Atlas repository. You can do this by dragging the file into the folder or by running the following command in the root directory:
 
